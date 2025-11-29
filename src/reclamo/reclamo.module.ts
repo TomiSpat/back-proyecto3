@@ -4,13 +4,25 @@ import { ReclamoService } from './reclamo.service';
 import { ReclamoController } from './reclamo.controller';
 import { ReclamoRepository } from './reclamo.repository';
 import { Reclamo, ReclamoSchema } from './entities/reclamo.entity';
+import { HistorialEstadoReclamo, HistorialEstadoReclamoSchema } from './entities/historial-estado-reclamo.entity';
+import { EstadoReclamoService } from './services/estado-reclamo.service';
+import { EstadoReclamoController, InfoEstadosController } from './controllers/estado-reclamo.controller';
+import { ReclamoStateFactory } from './state/reclamo-state.factory';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: Reclamo.name, schema: ReclamoSchema }]),
+    MongooseModule.forFeature([
+      { name: Reclamo.name, schema: ReclamoSchema },
+      { name: HistorialEstadoReclamo.name, schema: HistorialEstadoReclamoSchema },
+    ]),
   ],
-  controllers: [ReclamoController],
-  providers: [ReclamoService, ReclamoRepository],
-  exports: [ReclamoService, ReclamoRepository],
+  controllers: [ReclamoController, EstadoReclamoController, InfoEstadosController],
+  providers: [
+    ReclamoService, 
+    ReclamoRepository, 
+    EstadoReclamoService,
+    ReclamoStateFactory,
+  ],
+  exports: [ReclamoService, ReclamoRepository, EstadoReclamoService],
 })
 export class ReclamoModule {}
