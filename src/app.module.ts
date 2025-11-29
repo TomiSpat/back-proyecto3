@@ -10,6 +10,7 @@ import { CambioEstadoReclamoModule } from './cambio-estado-reclamo/cambio-estado
 import { EventoReclamoModule } from './evento-reclamo/evento-reclamo.module';
 import { ReporteModule } from './reporte/reporte.module';
 import { AuthModule } from './auth/auth.module';
+import { TipoProyectoModule } from './tipo-proyecto/tipo-proyecto.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AuthModule } from './auth/auth.module';
     EventoReclamoModule,
     ReporteModule,
     AuthModule,
+    TipoProyectoModule,
   ],
   controllers: [AppController],
   providers: [AppService],
