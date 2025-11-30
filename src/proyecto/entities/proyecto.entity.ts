@@ -26,9 +26,6 @@ export class Proyecto {
   @Prop({ type: Date })
   fechaFin?: Date;
 
-  @Prop({ type: String, enum: ['planificado', 'en_progreso', 'completado', 'cancelado'], default: 'planificado' })
-  estado: string;
-
   @Prop({ type: Number, required: true })
   presupuesto: number;
 

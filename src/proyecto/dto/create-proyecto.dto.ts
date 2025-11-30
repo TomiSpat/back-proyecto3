@@ -40,10 +40,6 @@ export class CreateProyectoDto {
   @IsOptional()
   fechaFin?: string;
 
-  @IsEnum(['planificado', 'en_progreso', 'completado', 'cancelado'])
-  @IsOptional()
-  estado?: string;
-
   @IsNumber()
   @IsNotEmpty()
   @Min(0)

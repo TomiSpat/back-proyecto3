@@ -1,0 +1,986 @@
+{
+  "info": {
+    "name": "Sistema de Gestión de Reclamos - API",
+    "description": "Colección completa de endpoints para el sistema de gestión de reclamos con patrón State",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "cliente_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tipo_proyecto_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "proyecto_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reclamo_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "usuario_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. CLIENTES",
+      "item": [
+        {
+          "name": "Crear Cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set(\"cliente_id\", jsonData._id);",
+                  "    pm.environment.set(\"cliente_id\", jsonData._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Empresa Tech Solutions S.A.\",\n  \"email\": \"contacto@techsolutions.com\",\n  \"telefono\": \"+54 11 4567-8900\",\n  \"direccion\": \"Av. Corrientes 1234, CABA, Argentina\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/cliente",
+              "host": ["{{base_url}}"],
+              "path": ["cliente"]
+            },
+            "description": "Crea un nuevo cliente en el sistema"
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Todos los Clientes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cliente",
+              "host": ["{{base_url}}"],
+              "path": ["cliente"]
+            },
+            "description": "Obtiene la lista completa de clientes activos"
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Cliente por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cliente/{{cliente_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["cliente", "{{cliente_id}}"]
+            },
+            "description": "Obtiene un cliente específico por su ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Cliente",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+54 11 4567-8901\",\n  \"direccion\": \"Av. Corrientes 5678, CABA, Argentina\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/cliente/{{cliente_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["cliente", "{{cliente_id}}"]
+            },
+            "description": "Actualiza los datos de un cliente existente"
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar Cliente (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/cliente/{{cliente_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["cliente", "{{cliente_id}}"]
+            },
+            "description": "Realiza un soft delete del cliente (no lo elimina físicamente)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. TIPOS DE PROYECTO",
+      "item": [
+        {
+          "name": "Crear Tipo de Proyecto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set(\"tipo_proyecto_id\", jsonData._id);",
+                  "    pm.environment.set(\"tipo_proyecto_id\", jsonData._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Desarrollo Web\",\n  \"descripcion\": \"Proyectos de desarrollo de aplicaciones web con tecnologías modernas\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tipo-proyecto",
+              "host": ["{{base_url}}"],
+              "path": ["tipo-proyecto"]
+            },
+            "description": "Crea un nuevo tipo de proyecto"
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Tipos de Proyecto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/tipo-proyecto",
+              "host": ["{{base_url}}"],
+              "path": ["tipo-proyecto"]
+            },
+            "description": "Lista todos los tipos de proyecto disponibles"
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Tipo de Proyecto por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/tipo-proyecto/{{tipo_proyecto_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["tipo-proyecto", "{{tipo_proyecto_id}}"]
+            },
+            "description": "Obtiene un tipo de proyecto específico"
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Tipo de Proyecto",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Proyectos de desarrollo web con React, Angular, Vue y Node.js\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/tipo-proyecto/{{tipo_proyecto_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["tipo-proyecto", "{{tipo_proyecto_id}}"]
+            },
+            "description": "Actualiza un tipo de proyecto"
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar Tipo de Proyecto",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/tipo-proyecto/{{tipo_proyecto_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["tipo-proyecto", "{{tipo_proyecto_id}}"]
+            },
+            "description": "Soft delete de tipo de proyecto"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. PROYECTOS",
+      "item": [
+        {
+          "name": "Crear Proyecto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set(\"proyecto_id\", jsonData._id);",
+                  "    pm.environment.set(\"proyecto_id\", jsonData._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Portal E-commerce\",\n  \"descripcion\": \"Desarrollo de plataforma de comercio electrónico con carrito de compras y pasarela de pagos\",\n  \"clienteId\": \"{{cliente_id}}\",\n  \"tipoProyectoId\": \"{{tipo_proyecto_id}}\",\n  \"fechaInicio\": \"2025-01-15\",\n  \"fechaFin\": \"2025-06-30\",\n  \"estado\": \"EN_DESARROLLO\",\n  \"presupuesto\": 50000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/proyecto",
+              "host": ["{{base_url}}"],
+              "path": ["proyecto"]
+            },
+            "description": "Crea un nuevo proyecto asociado a un cliente"
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Todos los Proyectos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/proyecto",
+              "host": ["{{base_url}}"],
+              "path": ["proyecto"]
+            },
+            "description": "Lista todos los proyectos con sus relaciones pobladas"
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Proyecto por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/proyecto/{{proyecto_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["proyecto", "{{proyecto_id}}"]
+            },
+            "description": "Obtiene un proyecto específico con cliente y tipo poblados"
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Proyectos por Cliente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/proyecto/cliente/{{cliente_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["proyecto", "cliente", "{{cliente_id}}"]
+            },
+            "description": "Obtiene todos los proyectos de un cliente específico"
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Proyectos por Tipo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/proyecto/tipo-proyecto/{{tipo_proyecto_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["proyecto", "tipo-proyecto", "{{tipo_proyecto_id}}"]
+            },
+            "description": "Obtiene todos los proyectos de un tipo específico"
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Proyecto",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"EN_DESARROLLO\",\n  \"presupuesto\": 55000,\n  \"descripcion\": \"Desarrollo de plataforma de comercio electrónico con carrito de compras, pasarela de pagos y sistema de recomendaciones\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/proyecto/{{proyecto_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["proyecto", "{{proyecto_id}}"]
+            },
+            "description": "Actualiza los datos de un proyecto"
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar Proyecto",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/proyecto/{{proyecto_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["proyecto", "{{proyecto_id}}"]
+            },
+            "description": "Soft delete de proyecto"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. RECLAMOS - CRUD",
+      "item": [
+        {
+          "name": "Crear Reclamo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set(\"reclamo_id\", jsonData._id);",
+                  "    pm.environment.set(\"reclamo_id\", jsonData._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": \"{{cliente_id}}\",\n  \"proyectoId\": \"{{proyecto_id}}\",\n  \"tipoProyectoId\": \"{{tipo_proyecto_id}}\",\n  \"codigo\": \"REC-2025-001\",\n  \"tipo\": \"INCIDENTE\",\n  \"prioridad\": \"ALTA\",\n  \"criticidad\": \"ALTA\",\n  \"descripcion\": \"El sistema de pagos presenta errores al procesar transacciones con tarjetas de crédito Visa. Los usuarios reportan que la transacción se cancela sin motivo aparente después de ingresar los datos de la tarjeta.\",\n  \"areaActual\": \"SOPORTE_TECNICO\",\n  \"creadoPorUsuarioId\": \"{{usuario_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reclamo",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo"]
+            },
+            "description": "Crea un nuevo reclamo. El estado inicial será PENDIENTE automáticamente."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Todos los Reclamos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reclamo",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo"]
+            },
+            "description": "Lista todos los reclamos con relaciones pobladas"
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Reclamo por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reclamo/{{reclamo_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "{{reclamo_id}}"]
+            },
+            "description": "Obtiene un reclamo específico con todas sus relaciones"
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar Reclamos con Filtros",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reclamo/search?prioridad=ALTA&estadoActual=PENDIENTE",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "search"],
+              "query": [
+                {
+                  "key": "prioridad",
+                  "value": "ALTA"
+                },
+                {
+                  "key": "estadoActual",
+                  "value": "PENDIENTE"
+                }
+              ]
+            },
+            "description": "Busca reclamos con filtros personalizados"
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Reclamos por Cliente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reclamo/cliente/{{cliente_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "cliente", "{{cliente_id}}"]
+            },
+            "description": "Obtiene todos los reclamos de un cliente"
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Reclamos por Proyecto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reclamo/proyecto/{{proyecto_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "proyecto", "{{proyecto_id}}"]
+            },
+            "description": "Obtiene todos los reclamos de un proyecto"
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Reclamos por Tipo de Proyecto",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reclamo/tipo-proyecto/{{tipo_proyecto_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "tipo-proyecto", "{{tipo_proyecto_id}}"]
+            },
+            "description": "Obtiene todos los reclamos de un tipo de proyecto"
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Reclamos por Área",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reclamo/area/SOPORTE_TECNICO",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "area", "SOPORTE_TECNICO"]
+            },
+            "description": "Obtiene todos los reclamos de un área específica (VENTAS, SOPORTE_TECNICO, FACTURACION)"
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar Reclamo",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prioridad\": \"URGENTE\",\n  \"descripcion\": \"El sistema de pagos presenta errores críticos al procesar transacciones con tarjetas de crédito Visa. Los usuarios reportan que la transacción se cancela sin motivo aparente. URGENTE: Afecta al 80% de las transacciones.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reclamo/{{reclamo_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "{{reclamo_id}}"]
+            },
+            "description": "Actualiza un reclamo. Solo se puede modificar si el estado lo permite (PENDIENTE o EN_PROCESO)"
+          },
+          "response": []
+        },
+        {
+          "name": "Asignar Área a Reclamo",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"area\": \"SOPORTE_TECNICO\",\n  \"responsableId\": \"{{usuario_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reclamo/{{reclamo_id}}/asignar-area",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "{{reclamo_id}}", "asignar-area"]
+            },
+            "description": "Asigna un reclamo a un área y opcionalmente a un responsable"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancelar Reclamo (Soft Delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reclamo/{{reclamo_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "{{reclamo_id}}"]
+            },
+            "description": "Cancela un reclamo (cambia estado a CANCELADO y registra fechaCierre)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. RECLAMOS - GESTIÓN DE ESTADOS",
+      "item": [
+        {
+          "name": "Cambiar Estado: PENDIENTE → EN_PROCESO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevoEstado\": \"EN_PROCESO\",\n  \"motivoCambio\": \"Reclamo asignado al equipo de desarrollo para su resolución\",\n  \"areaResponsable\": \"SOPORTE_TECNICO\",\n  \"responsableId\": \"{{usuario_id}}\",\n  \"observaciones\": \"Se requiere revisión del módulo de pagos y validación de integración con pasarela\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reclamo/{{reclamo_id}}/estado/cambiar",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "{{reclamo_id}}", "estado", "cambiar"]
+            },
+            "description": "Cambia el estado de PENDIENTE a EN_PROCESO. Requiere responsable o área."
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar Estado: EN_PROCESO → EN_REVISION",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevoEstado\": \"EN_REVISION\",\n  \"motivoCambio\": \"Solución implementada, requiere validación\",\n  \"observaciones\": \"Se corrigió el error en la validación de tarjetas Visa. Se implementó retry automático para transacciones fallidas.\",\n  \"resumenResolucion\": \"Se identificó un problema en el algoritmo de validación de tarjetas Visa que causaba falsos negativos. Se implementó la corrección y se agregó un sistema de retry automático.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reclamo/{{reclamo_id}}/estado/cambiar",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "{{reclamo_id}}", "estado", "cambiar"]
+            },
+            "description": "Cambia el estado de EN_PROCESO a EN_REVISION. Requiere observaciones o resumen."
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar Estado: EN_REVISION → RESUELTO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevoEstado\": \"RESUELTO\",\n  \"motivoCambio\": \"Solución validada y aprobada\",\n  \"resumenResolucion\": \"Se corrigió el error en la validación de tarjetas Visa. Se implementó retry automático. Pruebas realizadas exitosamente con 100 transacciones sin errores. Cliente confirmó que el problema está resuelto.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reclamo/{{reclamo_id}}/estado/cambiar",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "{{reclamo_id}}", "estado", "cambiar"]
+            },
+            "description": "Cambia el estado de EN_REVISION a RESUELTO. Requiere resumen de resolución."
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar Estado: EN_REVISION → EN_PROCESO (Rechazo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevoEstado\": \"EN_PROCESO\",\n  \"motivoCambio\": \"La solución no resuelve completamente el problema. Se detectaron errores en transacciones con tarjetas Mastercard.\",\n  \"observaciones\": \"Requiere revisión adicional del módulo de pagos para incluir validación de Mastercard\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reclamo/{{reclamo_id}}/estado/cambiar",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "{{reclamo_id}}", "estado", "cambiar"]
+            },
+            "description": "Devuelve el reclamo de EN_REVISION a EN_PROCESO. Requiere motivo del rechazo."
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar Estado: RESUELTO → EN_PROCESO (Reapertura)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevoEstado\": \"EN_PROCESO\",\n  \"motivoCambio\": \"Cliente reporta que el problema volvió a ocurrir\",\n  \"observaciones\": \"El cliente informa que después de 2 días el error volvió a presentarse. Se requiere investigación adicional para identificar la causa raíz del problema recurrente.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reclamo/{{reclamo_id}}/estado/cambiar",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "{{reclamo_id}}", "estado", "cambiar"]
+            },
+            "description": "Reabre un reclamo RESUELTO. Requiere justificación detallada (mín. 20 caracteres)."
+          },
+          "response": []
+        },
+        {
+          "name": "Cambiar Estado: Cualquiera → CANCELADO",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nuevoEstado\": \"CANCELADO\",\n  \"motivoCambio\": \"Cliente solicitó cancelación del reclamo\",\n  \"observaciones\": \"El cliente decidió no continuar con el reclamo ya que encontró una solución alternativa\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reclamo/{{reclamo_id}}/estado/cambiar",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "{{reclamo_id}}", "estado", "cambiar"]
+            },
+            "description": "Cancela un reclamo. Estado final, no permite más transiciones."
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Historial de Estados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reclamo/{{reclamo_id}}/estado/historial",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "{{reclamo_id}}", "estado", "historial"]
+            },
+            "description": "Obtiene el historial completo de cambios de estado con fecha, hora, área y responsable"
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar si Puede Modificar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reclamo/{{reclamo_id}}/estado/puede-modificar",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "{{reclamo_id}}", "estado", "puede-modificar"]
+            },
+            "description": "Verifica si el reclamo puede ser modificado en su estado actual"
+          },
+          "response": []
+        },
+        {
+          "name": "Verificar si Puede Reasignar",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reclamo/{{reclamo_id}}/estado/puede-reasignar",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "{{reclamo_id}}", "estado", "puede-reasignar"]
+            },
+            "description": "Verifica si el reclamo puede ser reasignado en su estado actual"
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Información de Todos los Estados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reclamo/estados/info",
+              "host": ["{{base_url}}"],
+              "path": ["reclamo", "estados", "info"]
+            },
+            "description": "Obtiene información detallada de todos los estados disponibles, sus transiciones y permisos"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. ESCENARIOS DE PRUEBA",
+      "item": [
+        {
+          "name": "Escenario 1: Flujo Completo Exitoso",
+          "item": [
+            {
+              "name": "1. Crear Cliente",
+              "request": {
+                "method": "POST",
+                "header": [{"key": "Content-Type", "value": "application/json"}],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Acme Corporation\",\n  \"email\": \"info@acme.com\",\n  \"telefono\": \"+54 11 5555-0000\",\n  \"direccion\": \"Av. Principal 100\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/cliente",
+                  "host": ["{{base_url}}"],
+                  "path": ["cliente"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Crear Tipo de Proyecto",
+              "request": {
+                "method": "POST",
+                "header": [{"key": "Content-Type", "value": "application/json"}],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"App Móvil\",\n  \"descripcion\": \"Desarrollo de aplicaciones móviles nativas\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/tipo-proyecto",
+                  "host": ["{{base_url}}"],
+                  "path": ["tipo-proyecto"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "3. Crear Proyecto",
+              "request": {
+                "method": "POST",
+                "header": [{"key": "Content-Type", "value": "application/json"}],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"App de Delivery\",\n  \"descripcion\": \"Aplicación móvil para pedidos de comida\",\n  \"clienteId\": \"{{cliente_id}}\",\n  \"tipoProyectoId\": \"{{tipo_proyecto_id}}\",\n  \"fechaInicio\": \"2025-02-01\",\n  \"fechaFin\": \"2025-08-01\",\n  \"estado\": \"EN_DESARROLLO\",\n  \"presupuesto\": 80000\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/proyecto",
+                  "host": ["{{base_url}}"],
+                  "path": ["proyecto"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "4. Crear Reclamo",
+              "request": {
+                "method": "POST",
+                "header": [{"key": "Content-Type", "value": "application/json"}],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"clienteId\": \"{{cliente_id}}\",\n  \"proyectoId\": \"{{proyecto_id}}\",\n  \"tipoProyectoId\": \"{{tipo_proyecto_id}}\",\n  \"codigo\": \"REC-TEST-001\",\n  \"tipo\": \"INCIDENTE\",\n  \"prioridad\": \"MEDIA\",\n  \"criticidad\": \"MEDIA\",\n  \"descripcion\": \"La aplicación se cierra inesperadamente al intentar realizar un pedido con más de 5 items en el carrito\",\n  \"areaActual\": \"SOPORTE_TECNICO\",\n  \"creadoPorUsuarioId\": \"{{usuario_id}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/reclamo",
+                  "host": ["{{base_url}}"],
+                  "path": ["reclamo"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "5. PENDIENTE → EN_PROCESO",
+              "request": {
+                "method": "POST",
+                "header": [{"key": "Content-Type", "value": "application/json"}],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nuevoEstado\": \"EN_PROCESO\",\n  \"motivoCambio\": \"Asignado para resolución\",\n  \"areaResponsable\": \"SOPORTE_TECNICO\",\n  \"responsableId\": \"{{usuario_id}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/reclamo/{{reclamo_id}}/estado/cambiar",
+                  "host": ["{{base_url}}"],
+                  "path": ["reclamo", "{{reclamo_id}}", "estado", "cambiar"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "6. EN_PROCESO → EN_REVISION",
+              "request": {
+                "method": "POST",
+                "header": [{"key": "Content-Type", "value": "application/json"}],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nuevoEstado\": \"EN_REVISION\",\n  \"motivoCambio\": \"Corrección implementada\",\n  \"observaciones\": \"Se corrigió el límite del carrito\",\n  \"resumenResolucion\": \"Se aumentó el límite de items en el carrito y se optimizó la gestión de memoria\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/reclamo/{{reclamo_id}}/estado/cambiar",
+                  "host": ["{{base_url}}"],
+                  "path": ["reclamo", "{{reclamo_id}}", "estado", "cambiar"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "7. EN_REVISION → RESUELTO",
+              "request": {
+                "method": "POST",
+                "header": [{"key": "Content-Type", "value": "application/json"}],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nuevoEstado\": \"RESUELTO\",\n  \"motivoCambio\": \"Validación exitosa\",\n  \"resumenResolucion\": \"Corrección validada. La aplicación ahora soporta hasta 20 items sin problemas. Pruebas realizadas exitosamente.\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/reclamo/{{reclamo_id}}/estado/cambiar",
+                  "host": ["{{base_url}}"],
+                  "path": ["reclamo", "{{reclamo_id}}", "estado", "cambiar"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "8. Ver Historial Completo",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/reclamo/{{reclamo_id}}/estado/historial",
+                  "host": ["{{base_url}}"],
+                  "path": ["reclamo", "{{reclamo_id}}", "estado", "historial"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Escenario 2: Validaciones de Estado",
+          "item": [
+            {
+              "name": "Intentar modificar reclamo RESUELTO (debe fallar)",
+              "request": {
+                "method": "PATCH",
+                "header": [{"key": "Content-Type", "value": "application/json"}],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"descripcion\": \"Intento de modificación\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/reclamo/{{reclamo_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["reclamo", "{{reclamo_id}}"]
+                },
+                "description": "Debe retornar 403 Forbidden"
+              },
+              "response": []
+            },
+            {
+              "name": "Intentar transición inválida (debe fallar)",
+              "request": {
+                "method": "POST",
+                "header": [{"key": "Content-Type", "value": "application/json"}],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nuevoEstado\": \"EN_REVISION\",\n  \"motivoCambio\": \"Intento inválido\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/reclamo/{{reclamo_id}}/estado/cambiar",
+                  "host": ["{{base_url}}"],
+                  "path": ["reclamo", "{{reclamo_id}}", "estado", "cambiar"]
+                },
+                "description": "Debe retornar 400 Bad Request con mensaje de transición no permitida"
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

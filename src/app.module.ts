@@ -7,7 +7,7 @@ import { ClienteModule } from './cliente/cliente.module';
 import { ProyectoModule } from './proyecto/proyecto.module';
 import { ReclamoModule } from './reclamo/reclamo.module';
 import { UsuarioModule } from './usuario/usuario.module';
-import { EstadoReclamoModule } from './estado-reclamo/estado-reclamo.module';
+import { AuthModule } from './auth/auth.module';
 import { EventoReclamoModule } from './evento-reclamo/evento-reclamo.module';
 import { ReporteModule } from './reporte/reporte.module';
 import { TipoProyectoModule } from './tipo-proyecto/tipo-proyecto.module';
@@ -34,10 +34,9 @@ import { TipoProyectoModule } from './tipo-proyecto/tipo-proyecto.module';
     ProyectoModule,
     ReclamoModule,
     UsuarioModule,
-    EstadoReclamoModule,
+    AuthModule,
     EventoReclamoModule,
     ReporteModule,
-    // AuthModule,
     TipoProyectoModule,
   ],
   controllers: [AppController],

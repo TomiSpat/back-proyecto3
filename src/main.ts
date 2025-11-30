@@ -21,8 +21,11 @@ async function bootstrap() {
   // Configuración de Swagger
   const config = new DocumentBuilder()
     .setTitle('Sistema de Gestión de Reclamos')
-    .setDescription('API para gestión de clientes, proyectos y reclamos con patrón State')
+    .setDescription('API para gestión de clientes, proyectos y reclamos con autenticación JWT y control de roles')
     .setVersion('1.0')
+    .addBearerAuth()
+    .addTag('Autenticación')
+    .addTag('Usuarios')
     .addTag('Clientes')
     .addTag('Proyectos')
     .addTag('Tipos de Proyecto')

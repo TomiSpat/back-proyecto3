@@ -5,9 +5,9 @@ import { ReclamoController } from './reclamo.controller';
 import { ReclamoRepository } from './reclamo.repository';
 import { Reclamo, ReclamoSchema } from './entities/reclamo.entity';
 import { HistorialEstadoReclamo, HistorialEstadoReclamoSchema } from './entities/historial-estado-reclamo.entity';
-import { EstadoReclamoService } from './services/estado-reclamo.service';
-import { EstadoReclamoController, InfoEstadosController } from './controllers/estado-reclamo.controller';
 import { ReclamoStateFactory } from './state/reclamo-state.factory';
+import { EstadoReclamoController, InfoEstadosController } from 'src/estado-reclamo/estado-reclamo.controller';
+import { EstadoReclamoService } from 'src/estado-reclamo/estado-reclamo.service';
 
 @Module({
   imports: [

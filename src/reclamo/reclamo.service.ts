@@ -126,7 +126,11 @@ export class ReclamoService {
 
     // Si se proporciona un responsable, actualizarlo también
     if (assignDto.responsableId) {
-      return await this.reclamoRepository.update(id, { responsableActualId: assignDto.responsableId });
+      const actualizado = await this.reclamoRepository.update(id, { responsableActualId: assignDto.responsableId });
+      if (!actualizado) {
+        throw new NotFoundException(`No se encontró el reclamo con ID "${id}". No se pudo asignar el responsable.`);
+      }
+      return actualizado;
     }
 
     return reclamo;
