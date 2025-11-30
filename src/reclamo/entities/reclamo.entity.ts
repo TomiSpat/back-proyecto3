@@ -52,10 +52,16 @@ export class Reclamo {
     type: String,
     enum: ReclamoEstado,
     required: true,
-    default: ReclamoEstado.CREADO,
+    default: ReclamoEstado.PENDIENTE,
     index: true,
   })
   estadoActual: ReclamoEstado;
+
+  @Prop({ type: Boolean, default: false })
+  puedeModificar: boolean;
+
+  @Prop({ type: Boolean, default: true })
+  puedeReasignar: boolean;
 
   // Usuario interno responsable actual
   @Prop({ type: Types.ObjectId, ref: 'Usuario', index: true })

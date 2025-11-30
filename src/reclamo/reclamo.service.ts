@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { CreateReclamoDto } from './dto/create-reclamo.dto';
 import { UpdateReclamoDto } from './dto/update-reclamo.dto';
 import { ReclamoRepository } from './reclamo.repository';
@@ -73,6 +73,20 @@ export class ReclamoService {
       throw new BadRequestException(`El ID "${id}" no es un ObjectId válido de MongoDB`);
     }
 
+    // Verificar si el reclamo puede ser modificado
+    const reclamoActual = await this.reclamoRepository.findOne(id);
+    if (!reclamoActual) {
+      throw new NotFoundException(`No se encontró el reclamo con ID "${id}". No se pudo actualizar.`);
+    }
+
+    if (!reclamoActual.puedeModificar) {
+      throw new ForbiddenException(
+        `No se puede modificar el reclamo en estado ${reclamoActual.estadoActual}. ` +
+        `Los reclamos en este estado no permiten modificaciones. ` +
+        `Use el endpoint de cambio de estado si necesita cambiar el estado del reclamo.`
+      );
+    }
+
     try {
       const reclamo = await this.reclamoRepository.update(id, updateReclamoDto);
       if (!reclamo) {
@@ -80,7 +94,7 @@ export class ReclamoService {
       }
       return reclamo;
     } catch (error) {
-      if (error instanceof NotFoundException) {
+      if (error instanceof NotFoundException || error instanceof ForbiddenException) {
         throw error;
       }
       throw new BadRequestException(`Error al actualizar el reclamo: ${error.message}`);
@@ -92,6 +106,19 @@ export class ReclamoService {
       throw new BadRequestException(`El ID "${id}" no es un ObjectId válido de MongoDB`);
     }
 
+    // Verificar si el reclamo puede ser reasignado
+    const reclamoActual = await this.reclamoRepository.findOne(id);
+    if (!reclamoActual) {
+      throw new NotFoundException(`No se encontró el reclamo con ID "${id}". No se pudo asignar el área.`);
+    }
+
+    if (!reclamoActual.puedeReasignar) {
+      throw new ForbiddenException(
+        `No se puede reasignar el reclamo en estado ${reclamoActual.estadoActual}. ` +
+        `Los reclamos en este estado no permiten reasignaciones.`
+      );
+    }
+
     const reclamo = await this.reclamoRepository.asignarArea(id, assignDto.area);
     if (!reclamo) {
       throw new NotFoundException(`No se encontró el reclamo con ID "${id}". No se pudo asignar el área.`);
@@ -99,7 +126,7 @@ export class ReclamoService {
 
     // Si se proporciona un responsable, actualizarlo también
     if (assignDto.responsableId) {
-      return await this.update(id, { responsableActualId: assignDto.responsableId });
+      return await this.reclamoRepository.update(id, { responsableActualId: assignDto.responsableId });
     }
 
     return reclamo;
