@@ -10,10 +10,10 @@ export type UsuarioDocument = HydratedDocument<Usuario>;
   timestamps: true,
 })
 export class Usuario {
-  @Prop({ type: String, required: true, minlength: 2, maxlength: 100 })
+  @Prop({ type: String, required: true, minlength: 2, maxlength: 20 })
   nombre: string;
 
-  @Prop({ type: String, required: true, minlength: 2, maxlength: 100 })
+  @Prop({ type: String, required: true, minlength: 2, maxlength: 40 })
   apellido: string;
 
   @Prop({ type: String, required: true, unique: true, lowercase: true })
@@ -37,6 +37,8 @@ export class Usuario {
   @Prop({ type: String, enum: UsuarioEstado, default: UsuarioEstado.ACTIVO })
   estado: UsuarioEstado;
 
+  @Prop({ type: Types.ObjectId, ref: 'Cliente', default: null })
+  clienteId?: Types.ObjectId;
 
   @Prop({ type: Date })
   ultimoAcceso?: Date;

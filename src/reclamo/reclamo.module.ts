@@ -8,6 +8,7 @@ import { HistorialEstadoReclamo, HistorialEstadoReclamoSchema } from './entities
 import { ReclamoStateFactory } from './state/reclamo-state.factory';
 import { EstadoReclamoController, InfoEstadosController } from 'src/estado-reclamo/estado-reclamo.controller';
 import { EstadoReclamoService } from 'src/estado-reclamo/estado-reclamo.service';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { EstadoReclamoService } from 'src/estado-reclamo/estado-reclamo.service'
       { name: Reclamo.name, schema: ReclamoSchema },
       { name: HistorialEstadoReclamo.name, schema: HistorialEstadoReclamoSchema },
     ]),
+    AuthModule, // Para usar los guards de autenticación
   ],
   controllers: [ReclamoController, EstadoReclamoController, InfoEstadosController],
   providers: [

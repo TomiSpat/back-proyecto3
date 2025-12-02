@@ -39,14 +39,14 @@ export class Reclamo {
   @Prop({ type: String, required: true, minlength: 20, maxlength: 2000 })
   descripcion: string;
 
-  // Ãrea general visible para cliente
+  // Área general visible para cliente (puede ser null si el reclamo está pendiente de asignación)
   @Prop({
     type: String,
     enum: AreaGeneralReclamo,
-    required: true,
+    required: false,
     index: true,
   })
-  areaActual: AreaGeneralReclamo;
+  areaActual?: AreaGeneralReclamo;
 
   @Prop({
     type: String,

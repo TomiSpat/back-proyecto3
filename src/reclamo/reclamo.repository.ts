@@ -12,14 +12,21 @@ export class ReclamoRepository implements IReclamoRepository {
     @InjectModel(Reclamo.name) private reclamoModel: Model<ReclamoDocument>,
   ) {}
 
-  async create(data: CreateReclamoDto): Promise<ReclamoDocument> {
-    const reclamo = new this.reclamoModel({
+  async create(data: any): Promise<ReclamoDocument> {
+    const reclamoData: any = {
       ...data,
       clienteId: new Types.ObjectId(data.clienteId),
       proyectoId: new Types.ObjectId(data.proyectoId),
       tipoProyectoId: new Types.ObjectId(data.tipoProyectoId),
       creadoPorUsuarioId: data.creadoPorUsuarioId ? new Types.ObjectId(data.creadoPorUsuarioId) : undefined,
-    });
+    };
+
+    // Solo convertir responsableActualId si está presente
+    if (data.responsableActualId) {
+      reclamoData.responsableActualId = new Types.ObjectId(data.responsableActualId);
+    }
+
+    const reclamo = new this.reclamoModel(reclamoData);
     return await reclamo.save();
   }
 
