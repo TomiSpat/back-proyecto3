@@ -3,12 +3,9 @@ import {
   IsNotEmpty,
   IsMongoId,
   IsDateString,
-  IsNumber,
   IsOptional,
-  IsEnum,
   MinLength,
   MaxLength,
-  Min,
 } from 'class-validator';
 
 export class CreateProyectoDto {
@@ -39,9 +36,4 @@ export class CreateProyectoDto {
   @IsDateString()
   @IsOptional()
   fechaFin?: string;
-
-  @IsNumber()
-  @IsNotEmpty()
-  @Min(0)
-  presupuesto: number;
 }

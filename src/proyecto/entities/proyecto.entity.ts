@@ -26,9 +26,6 @@ export class Proyecto {
   @Prop({ type: Date })
   fechaFin?: Date;
 
-  @Prop({ type: Number, required: true })
-  presupuesto: number;
-
   @Prop({ type: Boolean, default: false })
   isDeleted: boolean;
 
