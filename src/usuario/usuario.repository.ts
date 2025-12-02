@@ -12,9 +12,9 @@ export class UsuarioRepository implements IUsuarioRepository {
     @InjectModel(Usuario.name) private usuarioModel: Model<UsuarioDocument>,
   ) {}
 
-  async create(createUsuarioDto: CreateUsuarioDto): Promise<UsuarioDocument> {
+  async create(createUsuarioDto: CreateUsuarioDto | any): Promise<UsuarioDocument> {
     const usuario = new this.usuarioModel({
-      ...createUsuarioDto
+      ...createUsuarioDto,
     });
     return await usuario.save();
   }

@@ -1,17 +1,24 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { InjectConnection } from '@nestjs/mongoose';
+import { Connection, ClientSession } from 'mongoose';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { UsuarioRepository } from './usuario.repository';
 import { UsuarioDocument } from './entities/usuario.entity';
+import { ClienteRepository } from '../cliente/cliente.repository';
 import * as bcrypt from 'bcrypt';
 import { UsuarioRol } from './usuario.enums';
 
 @Injectable()
 export class UsuarioService {
-  constructor(private readonly usuarioRepository: UsuarioRepository) {}
+  constructor(
+    private readonly usuarioRepository: UsuarioRepository,
+    private readonly clienteRepository: ClienteRepository,
+    @InjectConnection() private readonly connection: Connection,
+  ) {}
 
   async create(createUsuarioDto: CreateUsuarioDto): Promise<UsuarioDocument> {
-    // Verificar si el email ya existe
+    // Verificar si el email ya existe en usuarios
     const existeUsuario = await this.usuarioRepository.findByEmail(createUsuarioDto.email);
     if (existeUsuario) {
       throw new ConflictException(`Ya existe un usuario con el email "${createUsuarioDto.email}"`);
@@ -22,7 +29,21 @@ export class UsuarioService {
       throw new BadRequestException('Los usuarios con rol "agente" deben tener un área asignada');
     }
 
-    // Hashear la contraseña
+    // Validar que los clientes tengan los datos necesarios
+    if (createUsuarioDto.rol === UsuarioRol.CLIENTE) {
+      if (!createUsuarioDto.numDocumento || !createUsuarioDto.fechaNacimiento || !createUsuarioDto.numTelefono) {
+        throw new BadRequestException(
+          'Los usuarios con rol "cliente" deben proporcionar: numDocumento, fechaNacimiento y numTelefono'
+        );
+      }
+    }
+
+    // Si es rol CLIENTE, usar transacción para crear Usuario y Cliente
+    if (createUsuarioDto.rol === UsuarioRol.CLIENTE) {
+      return await this.createUsuarioConCliente(createUsuarioDto);
+    }
+
+    // Para otros roles (admin, coordinador, agente), crear solo el usuario
     const hashedPassword = await bcrypt.hash(createUsuarioDto.password, 10);
 
     try {
@@ -36,6 +57,75 @@ export class UsuarioService {
         throw new ConflictException('Ya existe un usuario con ese email');
       }
       throw new BadRequestException(`Error al crear el usuario: ${error.message}`);
+    }
+  }
+
+  private async createUsuarioConCliente(createUsuarioDto: CreateUsuarioDto): Promise<UsuarioDocument> {
+    const session: ClientSession = await this.connection.startSession();
+    session.startTransaction();
+
+    try {
+      // 1. Verificar si ya existe un cliente con ese email
+      const clienteExistente = await this.clienteRepository.findByEmail(createUsuarioDto.email);
+
+      let clienteId: string;
+
+      if (clienteExistente) {
+        // Si el cliente ya existe, verificar que no tenga un usuario asociado
+        if (clienteExistente.usuarioId) {
+          throw new ConflictException(
+            `El cliente con email "${createUsuarioDto.email}" ya tiene un usuario asociado`
+          );
+        }
+        clienteId = clienteExistente._id.toString();
+      } else {
+        // 2. Crear el cliente si no existe
+        const nuevoCliente = await this.clienteRepository.create({
+          nombre: createUsuarioDto.nombre,
+          apellido: createUsuarioDto.apellido,
+          email: createUsuarioDto.email,
+          numDocumento: createUsuarioDto.numDocumento!,
+          fechaNacimiento: createUsuarioDto.fechaNacimiento!,
+          numTelefono: createUsuarioDto.numTelefono!,
+        });
+        clienteId = nuevoCliente._id.toString();
+      }
+
+      // 3. Hashear la contraseña
+      const hashedPassword = await bcrypt.hash(createUsuarioDto.password, 10);
+
+      // 4. Crear el usuario con referencia al cliente
+      const usuario = await this.usuarioRepository.create({
+        nombre: createUsuarioDto.nombre,
+        apellido: createUsuarioDto.apellido,
+        email: createUsuarioDto.email,
+        password: hashedPassword,
+        rol: createUsuarioDto.rol,
+        clienteId: clienteId as any,
+      });
+
+      // 5. Actualizar el cliente con la referencia al usuario
+      await this.clienteRepository.updateUsuarioId(clienteId, usuario._id.toString());
+
+      // Commit de la transacción
+      await session.commitTransaction();
+
+      return usuario;
+    } catch (error) {
+      // Rollback en caso de error
+      await session.abortTransaction();
+
+      if (error instanceof ConflictException || error instanceof BadRequestException) {
+        throw error;
+      }
+
+      if (error.code === 11000) {
+        throw new ConflictException('Ya existe un usuario o cliente con ese email o documento');
+      }
+
+      throw new BadRequestException(`Error al crear el usuario con cliente: ${error.message}`);
+    } finally {
+      session.endSession();
     }
   }
 
