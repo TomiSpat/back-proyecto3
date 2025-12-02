@@ -25,7 +25,16 @@ import { TipoProyectoModule } from './tipo-proyecto/tipo-proyecto.module';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         uri: configService.get<string>('MONGODB_URI'),
-        dbName: 'proyecto3_db', // Nombre de la base de datos
+        dbName: 'proyecto3_db',
+        // Opciones para MongoDB Atlas - mejora estabilidad de conexión
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+        maxPoolSize: 10,
+        minPoolSize: 2,
+        maxIdleTimeMS: 30000,
+        retryWrites: true,
+        retryReads: true,
+        heartbeatFrequencyMS: 10000,
       }),
       inject: [ConfigService],
     }),
