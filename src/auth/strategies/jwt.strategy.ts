@@ -38,6 +38,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       areaAsignada: usuario.areaAsignada,
       nombre: usuario.nombre,
       apellido: usuario.apellido,
+      clienteId: usuario.clienteId?.toString(),
     };
   }
 }

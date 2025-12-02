@@ -4,7 +4,7 @@ import { Model, Types } from 'mongoose';
 import { CambiarEstadoReclamoDto } from 'src/reclamo/dto/cambiar-estado-reclamo.dto';
 import { HistorialEstadoReclamo, HistorialEstadoReclamoDocument } from 'src/reclamo/entities/historial-estado-reclamo.entity';
 import { Reclamo, ReclamoDocument } from 'src/reclamo/entities/reclamo.entity';
-import { ReclamoEstado } from 'src/reclamo/reclamo.enums';
+import { AreaGeneralReclamo, ReclamoEstado } from 'src/reclamo/reclamo.enums';
 import { ReclamoStateFactory } from 'src/reclamo/state/reclamo-state.factory';
 
 
@@ -132,7 +132,7 @@ export class EstadoReclamoService {
     reclamoId: Types.ObjectId,
     estadoAnterior: ReclamoEstado,
     estadoNuevo: ReclamoEstado,
-    areaResponsable: string,
+    areaResponsable: AreaGeneralReclamo | undefined,
     usuarioResponsableId?: string,
     motivoCambio?: string,
     observaciones?: string,

@@ -5,7 +5,7 @@ import { ReclamoRepository } from './reclamo.repository';
 import { ReclamoDocument } from './entities/reclamo.entity';
 import { AssignReclamoDto } from './dto/asignacion-area.dto';
 import { AsignarReclamoPendienteDto } from './dto/asignar-reclamo-pendiente.dto';
-import { UsuarioDocument } from '../usuario/entities/usuario.entity';
+import { JwtUser } from '../auth/interfaces/jwt-user.interface';
 import { UsuarioRol } from '../usuario/usuario.enums';
 import { ReclamoPrioridad, ReclamoCriticidad, ReclamoEstado } from './reclamo.enums';
 
@@ -18,10 +18,10 @@ export class ReclamoService {
    * - CLIENTE: Crea reclamo básico (sin área asignada, pendiente de asignación por coordinador)
    * - ADMIN/AGENTE/COORDINADOR: Crea reclamo completo con asignaciones
    */
-  async create(createReclamoDto: CreateReclamoDto, usuario: UsuarioDocument): Promise<ReclamoDocument> {
+  async create(createReclamoDto: CreateReclamoDto, usuario: JwtUser): Promise<ReclamoDocument> {
     // Determinar el escenario según el rol del usuario
     const esCliente = usuario.rol === UsuarioRol.CLIENTE;
-    const esStaff = [UsuarioRol.ADMIN, UsuarioRol.COORDINADOR, UsuarioRol.AGENTE].includes(usuario.rol);
+    const esStaff = [UsuarioRol.ADMIN, UsuarioRol.COORDINADOR, UsuarioRol.AGENTE].includes(usuario.rol as UsuarioRol);
 
     if (!esCliente && !esStaff) {
       throw new BadRequestException('El usuario no tiene un rol válido para crear reclamos');
@@ -53,7 +53,7 @@ export class ReclamoService {
   /**
    * Prepara los datos del reclamo cuando lo crea un CLIENTE
    */
-  private async prepararReclamoCliente(createReclamoDto: CreateReclamoDto, usuario: UsuarioDocument): Promise<any> {
+  private async prepararReclamoCliente(createReclamoDto: CreateReclamoDto, usuario: JwtUser): Promise<any> {
     // Validar que el cliente tenga un clienteId asociado
     if (!usuario.clienteId) {
       throw new BadRequestException(
@@ -70,20 +70,20 @@ export class ReclamoService {
       descripcion: createReclamoDto.descripcion,
 
       // Campos asignados automáticamente
-      clienteId: usuario.clienteId.toString(), // Del usuario autenticado
+      clienteId: usuario.clienteId, // Del usuario autenticado
       prioridad: ReclamoPrioridad.MEDIA, // Por defecto
       criticidad: ReclamoCriticidad.MEDIA, // Por defecto
       estadoActual: ReclamoEstado.PENDIENTE, // Pendiente de asignación
       areaActual: undefined, // Sin área asignada (el coordinador lo asignará)
       responsableActualId: undefined, // Sin responsable (el coordinador lo asignará)
-      creadoPorUsuarioId: usuario._id.toString(),
+      creadoPorUsuarioId: usuario.id,
     };
   }
 
   /**
    * Prepara los datos del reclamo cuando lo crea STAFF (Admin/Agente/Coordinador)
    */
-  private async prepararReclamoStaff(createReclamoDto: CreateReclamoDto, usuario: UsuarioDocument): Promise<any> {
+  private async prepararReclamoStaff(createReclamoDto: CreateReclamoDto, usuario: JwtUser): Promise<any> {
     // Validar que se proporcione el clienteId
     if (!createReclamoDto.clienteId) {
       throw new BadRequestException(
@@ -123,7 +123,7 @@ export class ReclamoService {
 
       // Campos del sistema
       estadoActual: estadoInicial,
-      creadoPorUsuarioId: usuario._id.toString(),
+      creadoPorUsuarioId: usuario.id,
     };
   }
 
@@ -250,14 +250,14 @@ export class ReclamoService {
   async asignarReclamoPendiente(
     id: string, 
     asignarDto: AsignarReclamoPendienteDto,
-    usuario: UsuarioDocument
+    usuario: JwtUser
   ): Promise<ReclamoDocument> {
     if (!id.match(/^[0-9a-fA-F]{24}$/)) {
       throw new BadRequestException(`El ID "${id}" no es un ObjectId válido de MongoDB`);
     }
 
     // Verificar que el usuario sea coordinador o admin
-    if (![UsuarioRol.COORDINADOR, UsuarioRol.ADMIN].includes(usuario.rol)) {
+    if (![UsuarioRol.COORDINADOR, UsuarioRol.ADMIN].includes(usuario.rol as UsuarioRol)) {
       throw new ForbiddenException(
         'Solo los coordinadores y administradores pueden asignar reclamos pendientes'
       );

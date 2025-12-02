@@ -22,7 +22,7 @@ export class UsuarioRepository implements IUsuarioRepository {
   async findAll(filter: any = {}): Promise<UsuarioDocument[]> {
     return await this.usuarioModel
       .find({ ...filter, isDeleted: false })
-      .populate('clienteAsociadoId', 'nombre email')
+      .populate('clienteId', 'nombre email')
       .select('-password')
       .sort({ createdAt: -1 })
       .exec();
@@ -31,7 +31,7 @@ export class UsuarioRepository implements IUsuarioRepository {
   async findOne(id: string): Promise<UsuarioDocument | null> {
     return await this.usuarioModel
       .findOne({ _id: id, isDeleted: false })
-      .populate('clienteAsociadoId', 'nombre email')
+      .populate('clienteId', 'nombre email')
       .select('-password')
       .exec();
   }
@@ -53,7 +53,7 @@ export class UsuarioRepository implements IUsuarioRepository {
   async findByRol(rol: string): Promise<UsuarioDocument[]> {
     return await this.usuarioModel
       .find({ rol, isDeleted: false })
-      .populate('clienteAsociadoId', 'nombre email')
+      .populate('clienteId', 'nombre email')
       .select('-password')
       .sort({ nombre: 1 })
       .exec();
@@ -76,7 +76,7 @@ export class UsuarioRepository implements IUsuarioRepository {
         updateData,
         { new: true }
       )
-      .populate('clienteAsociadoId', 'nombre email')
+      .populate('clienteId', 'nombre email')
       .select('-password')
       .exec();
   }

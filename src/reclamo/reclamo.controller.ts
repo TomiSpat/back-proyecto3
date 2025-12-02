@@ -21,7 +21,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { UsuarioDocument } from '../usuario/entities/usuario.entity';
+import { JwtUser } from '../auth/interfaces/jwt-user.interface';
 import { UsuarioRol } from '../usuario/usuario.enums';
 
 @ApiTags('Reclamos')
@@ -50,7 +50,7 @@ export class ReclamoController {
   @ApiResponse({ status: 403, description: 'No autorizado (rol insuficiente)' })
   create(
     @Body() createReclamoDto: CreateReclamoDto,
-    @CurrentUser() usuario: UsuarioDocument
+    @CurrentUser() usuario: JwtUser
   ) {
     return this.reclamoService.create(createReclamoDto, usuario);
   }
@@ -155,7 +155,7 @@ export class ReclamoController {
   asignarReclamoPendiente(
     @Param('id') id: string, 
     @Body() asignarDto: AsignarReclamoPendienteDto,
-    @CurrentUser() usuario: UsuarioDocument
+    @CurrentUser() usuario: JwtUser
   ) {
     return this.reclamoService.asignarReclamoPendiente(id, asignarDto, usuario);
   }
