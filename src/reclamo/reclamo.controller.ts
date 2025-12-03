@@ -16,6 +16,7 @@ import { CreateReclamoDto } from './dto/create-reclamo.dto';
 import { UpdateReclamoDto } from './dto/update-reclamo.dto';
 import { AssignReclamoDto } from './dto/asignacion-area.dto';
 import { AsignarReclamoPendienteDto } from './dto/asignar-reclamo-pendiente.dto';
+import { AsignarResponsableDto } from './dto/asignar-responsable.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -125,13 +126,29 @@ export class ReclamoController {
   }
 
   @Patch(':id/asignar-area')
-  @ApiOperation({ summary: 'Asignar un reclamo a un área específica' })
+  @ApiOperation({ 
+    summary: 'Asignar o cambiar el área de un reclamo',
+    description: 'Permite cambiar el área de un reclamo sin modificar su estado. Se puede incluir opcionalmente un nuevo responsable.'
+  })
   @ApiParam({ name: 'id', description: 'ID del reclamo' })
   @ApiResponse({ status: 200, description: 'Área asignada exitosamente' })
   @ApiResponse({ status: 400, description: 'Datos inválidos o ID inválido' })
   @ApiResponse({ status: 404, description: 'Reclamo no encontrado' })
   asignarArea(@Param('id') id: string, @Body() assignDto: AssignReclamoDto) {
     return this.reclamoService.asignarArea(id, assignDto);
+  }
+
+  @Patch(':id/asignar-responsable')
+  @ApiOperation({ 
+    summary: 'Asignar o cambiar el responsable de un reclamo',
+    description: 'Permite cambiar el responsable de un reclamo sin modificar su estado ni área.'
+  })
+  @ApiParam({ name: 'id', description: 'ID del reclamo' })
+  @ApiResponse({ status: 200, description: 'Responsable asignado exitosamente' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos, ID inválido o responsable ya asignado' })
+  @ApiResponse({ status: 404, description: 'Reclamo no encontrado' })
+  asignarResponsable(@Param('id') id: string, @Body() asignarDto: AsignarResponsableDto) {
+    return this.reclamoService.asignarResponsable(id, asignarDto);
   }
 
   @Patch(':id/asignar-pendiente')

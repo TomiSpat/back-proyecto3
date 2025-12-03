@@ -1,20 +1,25 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, forwardRef, Inject } from '@nestjs/common';
 import { CreateReclamoDto } from './dto/create-reclamo.dto';
 import { UpdateReclamoDto } from './dto/update-reclamo.dto';
 import { ReclamoRepository } from './reclamo.repository';
 import { ReclamoDocument } from './entities/reclamo.entity';
 import { AssignReclamoDto } from './dto/asignacion-area.dto';
 import { AsignarReclamoPendienteDto } from './dto/asignar-reclamo-pendiente.dto';
+import { AsignarResponsableDto } from './dto/asignar-responsable.dto';
 import { JwtUser } from '../auth/interfaces/jwt-user.interface';
 import { UsuarioRol } from '../usuario/usuario.enums';
-import { ReclamoPrioridad, ReclamoCriticidad, ReclamoEstado } from './reclamo.enums';
+import { ReclamoPrioridad, ReclamoCriticidad, ReclamoEstado, AreaGeneralReclamo } from './reclamo.enums';
+import { EstadoReclamoService } from '../estado-reclamo/estado-reclamo.service';
 
 @Injectable()
 export class ReclamoService {
-  constructor(private readonly reclamoRepository: ReclamoRepository) {}
+  constructor(
+    private readonly reclamoRepository: ReclamoRepository,
+    @Inject(forwardRef(() => EstadoReclamoService))
+    private readonly estadoReclamoService: EstadoReclamoService,
+  ) {}
 
   /**
-   * Crea un reclamo con lógica diferenciada según el rol del usuario
    * - CLIENTE: Crea reclamo básico (sin área asignada, pendiente de asignación por coordinador)
    * - ADMIN/AGENTE/COORDINADOR: Crea reclamo completo con asignaciones
    */
@@ -226,19 +231,95 @@ export class ReclamoService {
       );
     }
 
+    const areaAnterior = reclamoActual.areaActual;
     const reclamo = await this.reclamoRepository.asignarArea(id, assignDto.area);
     if (!reclamo) {
       throw new NotFoundException(`No se encontró el reclamo con ID "${id}". No se pudo asignar el área.`);
     }
 
+    // Registrar cambio de área en el historial
+    await this.estadoReclamoService.registrarCambioArea(
+      id,
+      areaAnterior,
+      assignDto.area as AreaGeneralReclamo,
+      undefined,
+      `Área reasignada de ${areaAnterior || 'sin asignar'} a ${assignDto.area}`
+    );
+
     // Si se proporciona un responsable, actualizarlo también
     if (assignDto.responsableId) {
+      const responsableAnteriorId = reclamoActual.responsableActualId?.toString();
       const actualizado = await this.reclamoRepository.update(id, { responsableActualId: assignDto.responsableId });
       if (!actualizado) {
         throw new NotFoundException(`No se encontró el reclamo con ID "${id}". No se pudo asignar el responsable.`);
       }
+
+      // Registrar cambio de responsable en el historial
+      await this.estadoReclamoService.registrarCambioResponsable(
+        id,
+        responsableAnteriorId,
+        assignDto.responsableId,
+        assignDto.area as AreaGeneralReclamo,
+        undefined,
+        'Responsable reasignado junto con área'
+      );
+
       return actualizado;
     }
+
+    return reclamo;
+  }
+
+  /**
+   * Asigna o cambia el responsable de un reclamo sin modificar el estado
+   * Solo puede ser usado por coordinadores o administradores
+   */
+  async asignarResponsable(id: string, asignarDto: AsignarResponsableDto): Promise<ReclamoDocument> {
+    // Validar ObjectId
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      throw new BadRequestException(`El ID "${id}" no es un ObjectId válido de MongoDB`);
+    }
+
+    // Buscar el reclamo actual
+    const reclamoActual = await this.reclamoRepository.findOne(id);
+    if (!reclamoActual) {
+      throw new NotFoundException(`No se encontró el reclamo con ID "${id}".`);
+    }
+
+    // Validar que el reclamo permita reasignación
+    if (!reclamoActual.puedeReasignar) {
+      throw new ForbiddenException(
+        `No se puede reasignar el reclamo en estado ${reclamoActual.estadoActual}. ` +
+        `Los reclamos en este estado no permiten reasignaciones.`
+      );
+    }
+
+    const responsableAnteriorId = reclamoActual.responsableActualId?.toString();
+    const responsableNuevoId = asignarDto.responsableId;
+
+    // Validar que haya un cambio real
+    if (responsableAnteriorId === responsableNuevoId) {
+      throw new BadRequestException('El responsable especificado ya está asignado a este reclamo.');
+    }
+
+    // Actualizar el responsable
+    const reclamo = await this.reclamoRepository.update(id, { 
+      responsableActualId: responsableNuevoId 
+    });
+    
+    if (!reclamo) {
+      throw new NotFoundException(`No se encontró el reclamo con ID "${id}". No se pudo asignar el responsable.`);
+    }
+
+    // Registrar cambio de responsable en el historial
+    await this.estadoReclamoService.registrarCambioResponsable(
+      id,
+      responsableAnteriorId,
+      responsableNuevoId,
+      reclamoActual.areaActual,
+      undefined,
+      'Responsable reasignado sin cambio de estado'
+    );
 
     return reclamo;
   }
@@ -307,6 +388,27 @@ export class ReclamoService {
     const reclamoActualizado = await this.reclamoRepository.update(id, updateData);
     if (!reclamoActualizado) {
       throw new NotFoundException(`No se encontró el reclamo con ID "${id}".`);
+    }
+
+    // Registrar cambio de área en el historial
+    await this.estadoReclamoService.registrarCambioArea(
+      id,
+      undefined, // No tenía área anterior
+      asignarDto.area,
+      usuario.id,
+      'Asignación inicial de reclamo pendiente por coordinador'
+    );
+
+    // Registrar cambio de responsable si se proporcionó
+    if (asignarDto.responsableId) {
+      await this.estadoReclamoService.registrarCambioResponsable(
+        id,
+        undefined, // No tenía responsable anterior
+        asignarDto.responsableId,
+        asignarDto.area,
+        usuario.id,
+        'Asignación inicial de responsable por coordinador'
+      );
     }
 
     return reclamoActualizado;
