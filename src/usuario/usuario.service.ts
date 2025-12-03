@@ -161,6 +161,35 @@ export class UsuarioService {
     return await this.usuarioRepository.findByArea(area);
   }
 
+  /**
+   * Obtiene solo los agentes activos de un área específica
+   * Útil para asignar responsables a reclamos
+   */
+  async findAgentesActivosByArea(area: string): Promise<UsuarioDocument[]> {
+    return await this.usuarioRepository.findAgentesActivosByArea(area);
+  }
+
+  /**
+   * Valida que un usuario sea un agente activo del área especificada
+   */
+  async validarAgenteDelArea(usuarioId: string, area: string): Promise<boolean> {
+    if (!usuarioId.match(/^[0-9a-fA-F]{24}$/)) {
+      return false;
+    }
+
+    const usuario = await this.usuarioRepository.findOne(usuarioId);
+    if (!usuario) {
+      return false;
+    }
+
+    return (
+      usuario.rol === UsuarioRol.AGENTE &&
+      usuario.areaAsignada === area &&
+      usuario.estado === 'activo' &&
+      !usuario.isDeleted
+    );
+  }
+
   async update(id: string, updateUsuarioDto: UpdateUsuarioDto): Promise<UsuarioDocument> {
     if (!id.match(/^[0-9a-fA-F]{24}$/)) {
       throw new BadRequestException(`El ID "${id}" no es un ObjectId válido de MongoDB`);

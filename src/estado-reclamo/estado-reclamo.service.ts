@@ -204,6 +204,7 @@ export class EstadoReclamoService {
 
   /**
    * Registra un cambio de área en el historial
+   * Opcionalmente puede incluir el responsable nuevo si se asigna junto con el área
    */
   async registrarCambioArea(
     reclamoId: Types.ObjectId | string,
@@ -212,6 +213,7 @@ export class EstadoReclamoService {
     usuarioResponsableId?: string,
     observaciones?: string,
     fechaBase?: Date,
+    responsableNuevoId?: string, // Responsable asignado junto con el cambio de área
   ): Promise<void> {
     // Si no hay cambio real, no registrar
     if (areaAnterior === areaNueva) {
@@ -227,6 +229,8 @@ export class EstadoReclamoService {
       usuarioResponsableId: usuarioResponsableId ? new Types.ObjectId(usuarioResponsableId) : undefined,
       fechaCambio: fechaBase || new Date(),
       observaciones,
+      // Incluir responsable nuevo si se asignó junto con el área
+      responsableNuevoId: responsableNuevoId ? new Types.ObjectId(responsableNuevoId) : undefined,
     });
 
     await historial.save();
@@ -234,6 +238,7 @@ export class EstadoReclamoService {
 
   /**
    * Registra un cambio de responsable en el historial
+   * Opcionalmente puede incluir el área nueva si se cambia junto con el responsable
    */
   async registrarCambioResponsable(
     reclamoId: Types.ObjectId | string,
@@ -243,6 +248,8 @@ export class EstadoReclamoService {
     usuarioResponsableId?: string,
     observaciones?: string,
     fechaBase?: Date,
+    areaNueva?: AreaGeneralReclamo, // Área asignada junto con el cambio de responsable
+    areaAnterior?: AreaGeneralReclamo, // Área anterior si también cambió
   ): Promise<void> {
     // Si no hay cambio real, no registrar
     if (responsableAnteriorId === responsableNuevoId) {
@@ -258,6 +265,9 @@ export class EstadoReclamoService {
       usuarioResponsableId: usuarioResponsableId ? new Types.ObjectId(usuarioResponsableId) : undefined,
       fechaCambio: fechaBase || new Date(),
       observaciones,
+      // Incluir cambio de área si ocurrió junto con el cambio de responsable
+      areaNueva: areaNueva,
+      areaAnterior: areaAnterior,
     });
 
     await historial.save();

@@ -128,11 +128,17 @@ export class ReclamoController {
   @Patch(':id/asignar-area')
   @ApiOperation({ 
     summary: 'Asignar o cambiar el área de un reclamo',
-    description: 'Permite cambiar el área de un reclamo sin modificar su estado. Se puede incluir opcionalmente un nuevo responsable.'
+    description: `
+      Permite cambiar el área de un reclamo. 
+      IMPORTANTE: Al cambiar de área, es OBLIGATORIO asignar un agente de esa área.
+      El responsable debe ser un agente activo que pertenezca al área seleccionada.
+      
+      Para obtener los agentes disponibles de un área, use: GET /usuario/agentes/area/{area}
+    `
   })
   @ApiParam({ name: 'id', description: 'ID del reclamo' })
-  @ApiResponse({ status: 200, description: 'Área asignada exitosamente' })
-  @ApiResponse({ status: 400, description: 'Datos inválidos o ID inválido' })
+  @ApiResponse({ status: 200, description: 'Área y responsable asignados exitosamente' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos, ID inválido, o responsable no pertenece al área' })
   @ApiResponse({ status: 404, description: 'Reclamo no encontrado' })
   asignarArea(@Param('id') id: string, @Body() assignDto: AssignReclamoDto) {
     return this.reclamoService.asignarArea(id, assignDto);
