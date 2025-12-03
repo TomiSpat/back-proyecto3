@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { EstadoReclamoController, InfoEstadosController } from './estado-reclamo.controller';
-import { EstadoReclamoService } from '../services/estado-reclamo.service';
+import { EstadoReclamoController, InfoEstadosController } from '../../estado-reclamo/estado-reclamo.controller';
+import { EstadoReclamoService } from '../../estado-reclamo/estado-reclamo.service';
 import { CambiarEstadoReclamoDto } from '../dto/cambiar-estado-reclamo.dto';
 import { ReclamoEstado, AreaGeneralReclamo } from '../reclamo.enums';
 

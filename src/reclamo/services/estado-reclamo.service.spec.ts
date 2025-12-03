@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { EstadoReclamoService } from './estado-reclamo.service';
+import { EstadoReclamoService } from '../../estado-reclamo/estado-reclamo.service';
 import { Reclamo, ReclamoDocument } from '../entities/reclamo.entity';
 import { HistorialEstadoReclamo, HistorialEstadoReclamoDocument } from '../entities/historial-estado-reclamo.entity';
 import { ReclamoStateFactory } from '../state/reclamo-state.factory';

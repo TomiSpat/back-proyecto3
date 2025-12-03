@@ -48,11 +48,10 @@ describe('ProyectoRepository', () => {
     it('should create a new proyecto', async () => {
       const createDto: CreateProyectoDto = {
         nombre: 'Test Proyecto',
-        descripcion: 'Test Description',
+        descripcion: 'Test Description for the project that must be longer',
         clienteId: '507f1f77bcf86cd799439011',
         tipoProyectoId: '507f1f77bcf86cd799439012',
         fechaInicio: '2023-01-01',
-        presupuesto: 1000,
       };
 
       const savedProyecto = {

@@ -2,10 +2,10 @@ import { Injectable, BadRequestException, NotFoundException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { CambiarEstadoReclamoDto } from 'src/reclamo/dto/cambiar-estado-reclamo.dto';
-import { HistorialEstadoReclamo, HistorialEstadoReclamoDocument, TipoCambioHistorial } from 'src/reclamo/entities/historial-estado-reclamo.entity';
-import { Reclamo, ReclamoDocument } from 'src/reclamo/entities/reclamo.entity';
-import { AreaGeneralReclamo, ReclamoEstado } from 'src/reclamo/reclamo.enums';
-import { ReclamoStateFactory } from 'src/reclamo/state/reclamo-state.factory';
+import { HistorialEstadoReclamo, HistorialEstadoReclamoDocument, TipoCambioHistorial } from '../reclamo/entities/historial-estado-reclamo.entity';
+import { Reclamo, ReclamoDocument } from '../reclamo/entities/reclamo.entity';
+import { AreaGeneralReclamo, ReclamoEstado } from '../reclamo/reclamo.enums';
+import { ReclamoStateFactory } from '../reclamo/state/reclamo-state.factory';
 
 
 @Injectable()

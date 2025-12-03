@@ -5,7 +5,13 @@ import { BadRequestException, NotFoundException, ForbiddenException } from '@nes
 import { CreateReclamoDto } from './dto/create-reclamo.dto';
 import { UpdateReclamoDto } from './dto/update-reclamo.dto';
 import { AssignReclamoDto } from './dto/asignacion-area.dto';
+import { AsignarReclamoPendienteDto } from './dto/asignar-reclamo-pendiente.dto';
+import { AsignarResponsableDto } from './dto/asignar-responsable.dto';
 import { ReclamoEstado, ReclamoPrioridad, ReclamoCriticidad, ReclamoTipo, AreaGeneralReclamo } from './reclamo.enums';
+import { JwtUser } from '../auth/interfaces/jwt-user.interface';
+import { UsuarioRol } from '../usuario/usuario.enums';
+import { EstadoReclamoService } from '../estado-reclamo/estado-reclamo.service';
+import { UsuarioService } from '../usuario/usuario.service';
 
 describe('ReclamoService', () => {
   let service: ReclamoService;
@@ -25,8 +31,26 @@ describe('ReclamoService', () => {
     softDelete: jest.fn(),
   };
 
+  const mockEstadoReclamoService = {
+    cambiarEstado: jest.fn(),
+    registrarCambioArea: jest.fn(),
+    registrarCambioResponsable: jest.fn(),
+  };
+
+  const mockUsuarioService = {
+    validarAgenteDelArea: jest.fn(),
+    findAgentesActivosByArea: jest.fn(),
+  };
+
   const validObjectId = '507f1f77bcf86cd799439011';
   const invalidObjectId = 'invalid-id';
+  const mockJwtUser: JwtUser = {
+    id: validObjectId,
+    email: 'test@test.com',
+    rol: UsuarioRol.ADMIN,
+    nombre: 'Test',
+    apellido: 'User',
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -35,6 +59,14 @@ describe('ReclamoService', () => {
         {
           provide: ReclamoRepository,
           useValue: mockReclamoRepository,
+        },
+        {
+          provide: EstadoReclamoService,
+          useValue: mockEstadoReclamoService,
+        },
+        {
+          provide: UsuarioService,
+          useValue: mockUsuarioService,
         },
       ],
     }).compile();
@@ -48,7 +80,7 @@ describe('ReclamoService', () => {
   });
 
   describe('create', () => {
-    it('should create a new reclamo successfully', async () => {
+    it('should create a new reclamo successfully as staff', async () => {
       const createDto: CreateReclamoDto = {
         descripcion: 'Test reclamo',
         clienteId: validObjectId,
@@ -62,10 +94,135 @@ describe('ReclamoService', () => {
       const mockReclamo = { _id: validObjectId, ...createDto };
       mockReclamoRepository.create.mockResolvedValue(mockReclamo);
 
-      const result = await service.create(createDto);
+      const result = await service.create(createDto, mockJwtUser);
 
-      expect(mockReclamoRepository.create).toHaveBeenCalledWith(createDto);
+      expect(mockReclamoRepository.create).toHaveBeenCalled();
       expect(result).toEqual(mockReclamo);
+    });
+
+    it('should throw BadRequestException when user has invalid role', async () => {
+      const createDto: CreateReclamoDto = {
+        descripcion: 'Test reclamo',
+        proyectoId: validObjectId,
+        tipoProyectoId: validObjectId,
+        tipo: ReclamoTipo.INCIDENTE,
+      };
+
+      const invalidUser: JwtUser = {
+        ...mockJwtUser,
+        rol: 'invalid_role' as UsuarioRol,
+      };
+
+      await expect(service.create(createDto, invalidUser)).rejects.toThrow(BadRequestException);
+      await expect(service.create(createDto, invalidUser)).rejects.toThrow('no tiene un rol válido');
+    });
+
+    it('should create reclamo as cliente with automatic assignments', async () => {
+      const clienteUser: JwtUser = {
+        id: validObjectId,
+        email: 'cliente@test.com',
+        rol: UsuarioRol.CLIENTE,
+        nombre: 'Cliente',
+        apellido: 'Test',
+        clienteId: validObjectId,
+      };
+
+      const createDto: CreateReclamoDto = {
+        descripcion: 'Test reclamo cliente',
+        proyectoId: validObjectId,
+        tipoProyectoId: validObjectId,
+        tipo: ReclamoTipo.CONSULTA,
+      };
+
+      const mockReclamo = { _id: validObjectId, ...createDto };
+      mockReclamoRepository.create.mockResolvedValue(mockReclamo);
+
+      const result = await service.create(createDto, clienteUser);
+
+      expect(result).toEqual(mockReclamo);
+    });
+
+    it('should throw BadRequestException when cliente has no clienteId', async () => {
+      const clienteUser: JwtUser = {
+        id: validObjectId,
+        email: 'cliente@test.com',
+        rol: UsuarioRol.CLIENTE,
+        nombre: 'Cliente',
+        apellido: 'Test',
+      };
+
+      const createDto: CreateReclamoDto = {
+        descripcion: 'Test reclamo',
+        proyectoId: validObjectId,
+        tipoProyectoId: validObjectId,
+        tipo: ReclamoTipo.CONSULTA,
+      };
+
+      await expect(service.create(createDto, clienteUser)).rejects.toThrow(BadRequestException);
+      await expect(service.create(createDto, clienteUser)).rejects.toThrow('no tiene un cliente asociado');
+    });
+
+    it('should throw BadRequestException when staff creates without clienteId', async () => {
+      const createDto: CreateReclamoDto = {
+        descripcion: 'Test reclamo',
+        proyectoId: validObjectId,
+        tipoProyectoId: validObjectId,
+        tipo: ReclamoTipo.INCIDENTE,
+        prioridad: ReclamoPrioridad.ALTA,
+        criticidad: ReclamoCriticidad.ALTA,
+      };
+
+      await expect(service.create(createDto, mockJwtUser)).rejects.toThrow(BadRequestException);
+      await expect(service.create(createDto, mockJwtUser)).rejects.toThrow('clienteId es obligatorio');
+    });
+
+    it('should throw BadRequestException when staff creates without prioridad', async () => {
+      const createDto: CreateReclamoDto = {
+        descripcion: 'Test reclamo',
+        clienteId: validObjectId,
+        proyectoId: validObjectId,
+        tipoProyectoId: validObjectId,
+        tipo: ReclamoTipo.INCIDENTE,
+        criticidad: ReclamoCriticidad.ALTA,
+      };
+
+      await expect(service.create(createDto, mockJwtUser)).rejects.toThrow(BadRequestException);
+      await expect(service.create(createDto, mockJwtUser)).rejects.toThrow('prioridad es obligatorio');
+    });
+
+    it('should throw BadRequestException when staff creates without criticidad', async () => {
+      const createDto: CreateReclamoDto = {
+        descripcion: 'Test reclamo',
+        clienteId: validObjectId,
+        proyectoId: validObjectId,
+        tipoProyectoId: validObjectId,
+        tipo: ReclamoTipo.INCIDENTE,
+        prioridad: ReclamoPrioridad.ALTA,
+      };
+
+      await expect(service.create(createDto, mockJwtUser)).rejects.toThrow(BadRequestException);
+      await expect(service.create(createDto, mockJwtUser)).rejects.toThrow('criticidad es obligatorio');
+    });
+
+    it('should create reclamo with EN_PROCESO state when area and responsable provided', async () => {
+      const createDto: CreateReclamoDto = {
+        descripcion: 'Test reclamo',
+        clienteId: validObjectId,
+        proyectoId: validObjectId,
+        tipoProyectoId: validObjectId,
+        tipo: ReclamoTipo.INCIDENTE,
+        prioridad: ReclamoPrioridad.ALTA,
+        criticidad: ReclamoCriticidad.ALTA,
+        areaInicial: AreaGeneralReclamo.VENTAS,
+        responsableId: validObjectId,
+      };
+
+      const mockReclamo = { _id: validObjectId, ...createDto, estadoActual: ReclamoEstado.EN_PROCESO };
+      mockReclamoRepository.create.mockResolvedValue(mockReclamo);
+
+      const result = await service.create(createDto, mockJwtUser);
+
+      expect(result.estadoActual).toBe(ReclamoEstado.EN_PROCESO);
     });
 
     it('should throw BadRequestException on duplicate code error', async () => {
@@ -82,8 +239,8 @@ describe('ReclamoService', () => {
       const duplicateError = { code: 11000, message: 'Duplicate key' };
       mockReclamoRepository.create.mockRejectedValue(duplicateError);
 
-      await expect(service.create(createDto)).rejects.toThrow(BadRequestException);
-      await expect(service.create(createDto)).rejects.toThrow('Ya existe un reclamo con ese código');
+      await expect(service.create(createDto, mockJwtUser)).rejects.toThrow(BadRequestException);
+      await expect(service.create(createDto, mockJwtUser)).rejects.toThrow('Ya existe un reclamo con ese código');
     });
 
     it('should throw BadRequestException on other errors', async () => {
@@ -100,8 +257,23 @@ describe('ReclamoService', () => {
       const error = { message: 'Database error' };
       mockReclamoRepository.create.mockRejectedValue(error);
 
-      await expect(service.create(createDto)).rejects.toThrow(BadRequestException);
-      await expect(service.create(createDto)).rejects.toThrow('Error al crear el reclamo');
+      await expect(service.create(createDto, mockJwtUser)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should rethrow BadRequestException from within create', async () => {
+      const createDto: CreateReclamoDto = {
+        descripcion: 'Test reclamo',
+        clienteId: validObjectId,
+        proyectoId: validObjectId,
+        tipoProyectoId: validObjectId,
+        tipo: ReclamoTipo.INCIDENTE,
+        prioridad: ReclamoPrioridad.ALTA,
+        criticidad: ReclamoCriticidad.ALTA,
+      };
+
+      mockReclamoRepository.create.mockRejectedValue(new BadRequestException('Custom error'));
+
+      await expect(service.create(createDto, mockJwtUser)).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -301,21 +473,24 @@ describe('ReclamoService', () => {
 
   describe('asignarArea', () => {
     it('should assign area successfully', async () => {
-      const assignDto: AssignReclamoDto = { area: AreaGeneralReclamo.VENTAS };
+      const assignDto: AssignReclamoDto = { area: AreaGeneralReclamo.VENTAS, responsableId: '507f1f77bcf86cd799439012' };
       const mockReclamo = {
         _id: validObjectId,
         puedeReasignar: true,
         estadoActual: ReclamoEstado.PENDIENTE,
       };
-      const updatedReclamo = { ...mockReclamo, areaActual: assignDto.area };
+      const updatedReclamo = { ...mockReclamo, areaActual: assignDto.area, responsableActualId: assignDto.responsableId };
 
       mockReclamoRepository.findOne.mockResolvedValue(mockReclamo);
-      mockReclamoRepository.asignarArea.mockResolvedValue(updatedReclamo);
+      mockUsuarioService.validarAgenteDelArea.mockResolvedValue(true);
+      mockReclamoRepository.update.mockResolvedValue(updatedReclamo);
+      mockEstadoReclamoService.registrarCambioArea.mockResolvedValue(undefined);
+      mockEstadoReclamoService.registrarCambioResponsable.mockResolvedValue(undefined);
 
       const result = await service.asignarArea(validObjectId, assignDto);
 
       expect(mockReclamoRepository.findOne).toHaveBeenCalledWith(validObjectId);
-      expect(mockReclamoRepository.asignarArea).toHaveBeenCalledWith(validObjectId, assignDto.area);
+      expect(mockUsuarioService.validarAgenteDelArea).toHaveBeenCalledWith(assignDto.responsableId, assignDto.area);
       expect(result).toEqual(updatedReclamo);
     });
 
@@ -346,14 +521,14 @@ describe('ReclamoService', () => {
     });
 
     it('should throw BadRequestException for invalid ObjectId', async () => {
-      const assignDto: AssignReclamoDto = { area: AreaGeneralReclamo.VENTAS };
+      const assignDto: AssignReclamoDto = { area: AreaGeneralReclamo.VENTAS, responsableId: '507f1f77bcf86cd799439012' };
 
       await expect(service.asignarArea(invalidObjectId, assignDto)).rejects.toThrow(BadRequestException);
       await expect(service.asignarArea(invalidObjectId, assignDto)).rejects.toThrow('no es un ObjectId válido');
     });
 
     it('should throw NotFoundException when reclamo not found', async () => {
-      const assignDto: AssignReclamoDto = { area: AreaGeneralReclamo.VENTAS };
+      const assignDto: AssignReclamoDto = { area: AreaGeneralReclamo.VENTAS, responsableId: '507f1f77bcf86cd799439012' };
       mockReclamoRepository.findOne.mockResolvedValue(null);
 
       await expect(service.asignarArea(validObjectId, assignDto)).rejects.toThrow(NotFoundException);
@@ -361,7 +536,7 @@ describe('ReclamoService', () => {
     });
 
     it('should throw ForbiddenException when reclamo cannot be reassigned', async () => {
-      const assignDto: AssignReclamoDto = { area: AreaGeneralReclamo.VENTAS };
+      const assignDto: AssignReclamoDto = { area: AreaGeneralReclamo.VENTAS, responsableId: '507f1f77bcf86cd799439012' };
       const mockReclamo = {
         _id: validObjectId,
         puedeReasignar: false,
@@ -374,8 +549,8 @@ describe('ReclamoService', () => {
       await expect(service.asignarArea(validObjectId, assignDto)).rejects.toThrow('No se puede reasignar el reclamo');
     });
 
-    it('should throw NotFoundException when asignarArea returns null', async () => {
-      const assignDto: AssignReclamoDto = { area: AreaGeneralReclamo.VENTAS };
+    it('should throw NotFoundException when update returns null', async () => {
+      const assignDto: AssignReclamoDto = { area: AreaGeneralReclamo.VENTAS, responsableId: '507f1f77bcf86cd799439012' };
       const mockReclamo = {
         _id: validObjectId,
         puedeReasignar: true,
@@ -383,9 +558,258 @@ describe('ReclamoService', () => {
       };
 
       mockReclamoRepository.findOne.mockResolvedValue(mockReclamo);
-      mockReclamoRepository.asignarArea.mockResolvedValue(null);
+      mockUsuarioService.validarAgenteDelArea.mockResolvedValue(true);
+      mockReclamoRepository.update.mockResolvedValue(null);
 
       await expect(service.asignarArea(validObjectId, assignDto)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw BadRequestException when responsable is not from the area', async () => {
+      const assignDto: AssignReclamoDto = { area: AreaGeneralReclamo.VENTAS, responsableId: '507f1f77bcf86cd799439012' };
+      const mockReclamo = {
+        _id: validObjectId,
+        puedeReasignar: true,
+        estadoActual: ReclamoEstado.PENDIENTE,
+      };
+
+      mockReclamoRepository.findOne.mockResolvedValue(mockReclamo);
+      mockUsuarioService.validarAgenteDelArea.mockResolvedValue(false);
+      mockUsuarioService.findAgentesActivosByArea.mockResolvedValue([]);
+
+      await expect(service.asignarArea(validObjectId, assignDto)).rejects.toThrow(BadRequestException);
+      await expect(service.asignarArea(validObjectId, assignDto)).rejects.toThrow('no es un agente activo del área');
+    });
+
+    it('should include available agents in error message', async () => {
+      const assignDto: AssignReclamoDto = { area: AreaGeneralReclamo.VENTAS, responsableId: '507f1f77bcf86cd799439012' };
+      const mockReclamo = {
+        _id: validObjectId,
+        puedeReasignar: true,
+        estadoActual: ReclamoEstado.PENDIENTE,
+      };
+      const mockAgentes = [{ _id: 'agent1', nombre: 'Juan', apellido: 'Perez' }];
+
+      mockReclamoRepository.findOne.mockResolvedValue(mockReclamo);
+      mockUsuarioService.validarAgenteDelArea.mockResolvedValue(false);
+      mockUsuarioService.findAgentesActivosByArea.mockResolvedValue(mockAgentes);
+
+      await expect(service.asignarArea(validObjectId, assignDto)).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('asignarResponsable', () => {
+    it('should assign responsable successfully', async () => {
+      const asignarDto = { responsableId: '507f1f77bcf86cd799439012' };
+      const mockReclamo = {
+        _id: validObjectId,
+        puedeReasignar: true,
+        estadoActual: ReclamoEstado.EN_PROCESO,
+        responsableActualId: validObjectId,
+        areaActual: AreaGeneralReclamo.VENTAS,
+      };
+      const updatedReclamo = { ...mockReclamo, responsableActualId: asignarDto.responsableId };
+
+      mockReclamoRepository.findOne.mockResolvedValue(mockReclamo);
+      mockReclamoRepository.update.mockResolvedValue(updatedReclamo);
+      mockEstadoReclamoService.registrarCambioResponsable.mockResolvedValue(undefined);
+
+      const result = await service.asignarResponsable(validObjectId, asignarDto);
+
+      expect(result).toEqual(updatedReclamo);
+    });
+
+    it('should throw BadRequestException for invalid ObjectId', async () => {
+      const asignarDto = { responsableId: '507f1f77bcf86cd799439012' };
+
+      await expect(service.asignarResponsable(invalidObjectId, asignarDto)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw NotFoundException when reclamo not found', async () => {
+      const asignarDto = { responsableId: '507f1f77bcf86cd799439012' };
+      mockReclamoRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.asignarResponsable(validObjectId, asignarDto)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException when reclamo cannot be reassigned', async () => {
+      const asignarDto = { responsableId: '507f1f77bcf86cd799439012' };
+      const mockReclamo = {
+        _id: validObjectId,
+        puedeReasignar: false,
+        estadoActual: ReclamoEstado.RESUELTO,
+      };
+
+      mockReclamoRepository.findOne.mockResolvedValue(mockReclamo);
+
+      await expect(service.asignarResponsable(validObjectId, asignarDto)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw BadRequestException when same responsable', async () => {
+      const asignarDto = { responsableId: validObjectId };
+      const mockReclamo = {
+        _id: validObjectId,
+        puedeReasignar: true,
+        responsableActualId: { toString: () => validObjectId },
+      };
+
+      mockReclamoRepository.findOne.mockResolvedValue(mockReclamo);
+
+      await expect(service.asignarResponsable(validObjectId, asignarDto)).rejects.toThrow(BadRequestException);
+      await expect(service.asignarResponsable(validObjectId, asignarDto)).rejects.toThrow('ya está asignado');
+    });
+
+    it('should throw NotFoundException when update returns null', async () => {
+      const asignarDto = { responsableId: '507f1f77bcf86cd799439012' };
+      const mockReclamo = {
+        _id: validObjectId,
+        puedeReasignar: true,
+        responsableActualId: { toString: () => validObjectId },
+      };
+
+      mockReclamoRepository.findOne.mockResolvedValue(mockReclamo);
+      mockReclamoRepository.update.mockResolvedValue(null);
+
+      await expect(service.asignarResponsable(validObjectId, asignarDto)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('asignarReclamoPendiente', () => {
+    const coordinadorUser: JwtUser = {
+      id: validObjectId,
+      email: 'coordinador@test.com',
+      rol: UsuarioRol.COORDINADOR,
+      nombre: 'Coordinador',
+      apellido: 'Test',
+    };
+
+    it('should assign pending reclamo successfully', async () => {
+      const asignarDto = {
+        area: AreaGeneralReclamo.VENTAS,
+        responsableId: '507f1f77bcf86cd799439012',
+        prioridad: ReclamoPrioridad.ALTA,
+        criticidad: ReclamoCriticidad.ALTA,
+      };
+      const mockReclamo = {
+        _id: validObjectId,
+        estadoActual: ReclamoEstado.PENDIENTE,
+        areaActual: undefined,
+      };
+      const updatedReclamo = { ...mockReclamo, areaActual: asignarDto.area, estadoActual: ReclamoEstado.EN_PROCESO };
+
+      mockReclamoRepository.findOne.mockResolvedValue(mockReclamo);
+      mockReclamoRepository.update.mockResolvedValue(updatedReclamo);
+      mockEstadoReclamoService.registrarCambioArea.mockResolvedValue(undefined);
+      mockEstadoReclamoService.registrarCambioResponsable.mockResolvedValue(undefined);
+
+      const result = await service.asignarReclamoPendiente(validObjectId, asignarDto, coordinadorUser);
+
+      expect(result).toEqual(updatedReclamo);
+    });
+
+    it('should throw BadRequestException for invalid ObjectId', async () => {
+      const asignarDto = { area: AreaGeneralReclamo.VENTAS };
+
+      await expect(service.asignarReclamoPendiente(invalidObjectId, asignarDto, coordinadorUser)).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw ForbiddenException when user is not coordinador or admin', async () => {
+      const agenteUser: JwtUser = {
+        ...mockJwtUser,
+        rol: UsuarioRol.AGENTE,
+      };
+      const asignarDto = { area: AreaGeneralReclamo.VENTAS };
+
+      await expect(service.asignarReclamoPendiente(validObjectId, asignarDto, agenteUser)).rejects.toThrow(ForbiddenException);
+      await expect(service.asignarReclamoPendiente(validObjectId, asignarDto, agenteUser)).rejects.toThrow('Solo los coordinadores');
+    });
+
+    it('should throw NotFoundException when reclamo not found', async () => {
+      const asignarDto = { area: AreaGeneralReclamo.VENTAS };
+      mockReclamoRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.asignarReclamoPendiente(validObjectId, asignarDto, coordinadorUser)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw BadRequestException when reclamo is not pending', async () => {
+      const asignarDto = { area: AreaGeneralReclamo.VENTAS };
+      const mockReclamo = {
+        _id: validObjectId,
+        estadoActual: ReclamoEstado.EN_PROCESO,
+      };
+
+      mockReclamoRepository.findOne.mockResolvedValue(mockReclamo);
+
+      await expect(service.asignarReclamoPendiente(validObjectId, asignarDto, coordinadorUser)).rejects.toThrow(BadRequestException);
+      await expect(service.asignarReclamoPendiente(validObjectId, asignarDto, coordinadorUser)).rejects.toThrow('ya ha sido asignado');
+    });
+
+    it('should throw BadRequestException when reclamo already has area', async () => {
+      const asignarDto = { area: AreaGeneralReclamo.VENTAS };
+      const mockReclamo = {
+        _id: validObjectId,
+        estadoActual: ReclamoEstado.PENDIENTE,
+        areaActual: AreaGeneralReclamo.FACTURACION,
+      };
+
+      mockReclamoRepository.findOne.mockResolvedValue(mockReclamo);
+
+      await expect(service.asignarReclamoPendiente(validObjectId, asignarDto, coordinadorUser)).rejects.toThrow(BadRequestException);
+      await expect(service.asignarReclamoPendiente(validObjectId, asignarDto, coordinadorUser)).rejects.toThrow('ya tiene un área asignada');
+    });
+
+    it('should throw NotFoundException when update returns null', async () => {
+      const asignarDto = { area: AreaGeneralReclamo.VENTAS };
+      const mockReclamo = {
+        _id: validObjectId,
+        estadoActual: ReclamoEstado.PENDIENTE,
+        areaActual: undefined,
+      };
+
+      mockReclamoRepository.findOne.mockResolvedValue(mockReclamo);
+      mockReclamoRepository.update.mockResolvedValue(null);
+
+      await expect(service.asignarReclamoPendiente(validObjectId, asignarDto, coordinadorUser)).rejects.toThrow(NotFoundException);
+    });
+
+    it('should assign reclamo without responsable', async () => {
+      const asignarDto = { area: AreaGeneralReclamo.VENTAS };
+      const mockReclamo = {
+        _id: validObjectId,
+        estadoActual: ReclamoEstado.PENDIENTE,
+        areaActual: undefined,
+      };
+      const updatedReclamo = { ...mockReclamo, areaActual: asignarDto.area, estadoActual: ReclamoEstado.EN_PROCESO };
+
+      mockReclamoRepository.findOne.mockResolvedValue(mockReclamo);
+      mockReclamoRepository.update.mockResolvedValue(updatedReclamo);
+      mockEstadoReclamoService.registrarCambioArea.mockResolvedValue(undefined);
+
+      const result = await service.asignarReclamoPendiente(validObjectId, asignarDto, coordinadorUser);
+
+      expect(result).toEqual(updatedReclamo);
+      expect(mockEstadoReclamoService.registrarCambioResponsable).not.toHaveBeenCalled();
+    });
+
+    it('should allow admin to assign pending reclamo', async () => {
+      const adminUser: JwtUser = {
+        ...mockJwtUser,
+        rol: UsuarioRol.ADMIN,
+      };
+      const asignarDto = { area: AreaGeneralReclamo.VENTAS };
+      const mockReclamo = {
+        _id: validObjectId,
+        estadoActual: ReclamoEstado.PENDIENTE,
+        areaActual: undefined,
+      };
+      const updatedReclamo = { ...mockReclamo, areaActual: asignarDto.area };
+
+      mockReclamoRepository.findOne.mockResolvedValue(mockReclamo);
+      mockReclamoRepository.update.mockResolvedValue(updatedReclamo);
+      mockEstadoReclamoService.registrarCambioArea.mockResolvedValue(undefined);
+
+      const result = await service.asignarReclamoPendiente(validObjectId, asignarDto, adminUser);
+
+      expect(result).toEqual(updatedReclamo);
     });
   });
 
