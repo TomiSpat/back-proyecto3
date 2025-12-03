@@ -27,12 +27,25 @@ export class AuthService {
     // Actualizar último acceso
     await this.usuarioService.updateUltimoAcceso(usuario._id.toString());
 
+    // Extraer clienteId correctamente (puede ser ObjectId o objeto poblado)
+    let clienteIdString: string | undefined = undefined;
+    if (usuario.clienteId) {
+      // Si es un objeto poblado, extraer el _id
+      if (typeof usuario.clienteId === 'object' && '_id' in usuario.clienteId) {
+        clienteIdString = (usuario.clienteId as any)._id.toString();
+      } else {
+        // Si es un ObjectId directo
+        clienteIdString = (usuario.clienteId as any).toString();
+      }
+    }
+
     // Generar token JWT
     const payload = {
       sub: usuario._id.toString(),
       email: usuario.email,
       rol: usuario.rol,
       areaAsignada: usuario.areaAsignada,
+      clienteId: clienteIdString,
     };
 
     const access_token = this.jwtService.sign(payload);
@@ -46,7 +59,7 @@ export class AuthService {
         email: usuario.email,
         rol: usuario.rol,
         areaAsignada: usuario.areaAsignada,
-        clienteId: usuario.clienteId,
+        clienteId: clienteIdString,
       },
     };
   }
