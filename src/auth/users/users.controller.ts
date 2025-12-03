@@ -13,7 +13,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import config from 'src/config';
 import { Request, Response } from 'express';
 import { SetRoleDto } from './dtos/setrole.dto';
 import { LoginDTO } from '../interfaces/login.dto';
@@ -23,6 +22,7 @@ import { Permissions } from 'src/auth/permissions.enum';
 import { AuthGuard, AuthGuardFactory } from 'src/middleware/auth.middleware';
 import { RoleEntity } from '../role/entities/role.entity';
 import { RequestWithUser } from '../interfaces/request-user';
+import config from 'src/config';
 
 @Controller('users')
 export class UsersController {

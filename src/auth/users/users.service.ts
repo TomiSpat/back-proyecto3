@@ -309,6 +309,9 @@ export class UsersService {
   async listarRolesPorUsuario(id: number): Promise<RoleEntity[]> {
     try {
       const usuario = await this.userRepository.findOneById(id);
+      if (!usuario) {
+        throw new HttpException('Usuario no encontrado', 404);
+      }
       const rolesUsuario = usuario.role;
       return rolesUsuario;
     } catch (error) {

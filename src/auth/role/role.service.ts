@@ -197,6 +197,9 @@ export class RoleService {
       await this.roleRepository.update(updated);
 
       const response = await this.roleRepository.findOneById(id);
+      if (!response) {
+        throw new HttpException(`Rol con id: ${id} no encontrado`, 404);
+      } 
       return response;
     } catch (error) {
       throw new HttpException(
@@ -230,7 +233,7 @@ export class RoleService {
       if (!role) throw new HttpException('Rol no encontrado', 404);
 
       const permission = await this.permissionRepository.findOneById(body.id);
-
+      if (!permission) throw new HttpException('Permiso no encontrado', 404);
       role.permissionCodes = role.permissionCodes || [];
       role.permissionCodes.push(permission);
 

@@ -58,8 +58,8 @@ export class CreateReclamoDto {
   @IsOptional()
   areaActual?: AreaGeneralReclamo;
 
-  @ApiProperty({ description: 'ID del usuario que crea el reclamo', required: false })
+  @ApiProperty({ description: 'ID del usuario que crea el reclamo', required: true })
   @IsMongoId({ message: 'El ID del usuario debe ser un ObjectId válido de MongoDB' })
   @IsOptional()
-  creadoPorUsuarioId?: string;
+  creadoPorUsuarioId: string;
 }

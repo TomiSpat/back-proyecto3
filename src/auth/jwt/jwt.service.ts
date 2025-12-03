@@ -4,8 +4,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { sign, verify, SignOptions, Algorithm } from 'jsonwebtoken';
-import config from 'src/config';
 import { Payload } from '../interfaces/payload';
+import config from 'src/config';
 
 type JwtStringValue = string | number;
 
@@ -80,7 +80,7 @@ export class JwtService {
       const currentTime = Math.floor(Date.now() / 1000);
       const timeToExpire = (payload.exp - currentTime) / 60;
 
-      if (payload.email) {
+      // if (payload.email) {
         const accessToken = this.generateToken({ email: payload.email });
         const refresh =
           timeToExpire < 20
@@ -91,28 +91,6 @@ export class JwtService {
           ...(refresh && { refreshToken: refresh }),
           expirationTime: refresh ? 780000 : undefined,
         };
-      } else if (payload.eventId) {
-        const accessToken = this.generateInvitedToken({
-          eventId: payload.eventId,
-        });
-        const refresh =
-          timeToExpire < 20
-            ? this.generateInvitedToken({ eventId: payload.eventId }, 'refresh')
-            : undefined;
-        return {
-          accessToken,
-          ...(refresh && { refreshToken: refresh }),
-          expirationTime: refresh ? 780000 : undefined,
-        };
-      } else {
-        throw new HttpException('Payolad Incorrecto', 500);
-      }
-
-      // return {
-      //   accessToken,
-      //   ...(refresh && { refreshToken: refresh }),
-      //   expirationTime: refresh ? 780000 : undefined,
-      // };
     } catch (error) {
       throw new UnauthorizedException('Refresh token invÃ¡lido o expirado');
     }

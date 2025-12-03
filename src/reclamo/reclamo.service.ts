@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, HttpException } from '@nestjs/common';
 import { CreateReclamoDto } from './dto/create-reclamo.dto';
 import { UpdateReclamoDto } from './dto/update-reclamo.dto';
 import { ReclamoRepository } from './reclamo.repository';
@@ -12,7 +12,11 @@ export class ReclamoService {
   async create(createReclamoDto: CreateReclamoDto): Promise<ReclamoDocument> {
     try {
       return await this.reclamoRepository.create(createReclamoDto);
+    
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       if (error.code === 11000) {
         throw new BadRequestException('Ya existe un reclamo con ese código');
       }
@@ -126,7 +130,11 @@ export class ReclamoService {
 
     // Si se proporciona un responsable, actualizarlo también
     if (assignDto.responsableId) {
-      return await this.reclamoRepository.update(id, { responsableActualId: assignDto.responsableId });
+      const updatedReclamo = await this.reclamoRepository.update(id, { responsableActualId: assignDto.responsableId });
+      if (!updatedReclamo) {
+        throw new NotFoundException(`No se encontró el reclamo con ID "${id}". No se pudo actualizar el responsable.`);
+      }
+      return updatedReclamo;
     }
 
     return reclamo;
