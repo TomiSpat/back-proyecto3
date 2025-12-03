@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException, forwardRef, Inject, HttpException } from '@nestjs/common';
+import { Types } from 'mongoose';
 import { CreateReclamoDto } from './dto/create-reclamo.dto';
 import { UpdateReclamoDto } from './dto/update-reclamo.dto';
 import { ReclamoRepository } from './reclamo.repository';
@@ -74,22 +75,43 @@ export class ReclamoService {
       );
     }
 
+    // Validar que clienteId sea un ObjectId válido
+    if (!Types.ObjectId.isValid(usuario.clienteId)) {
+      console.error('ClienteId inválido:', {
+        clienteId: usuario.clienteId,
+        tipo: typeof usuario.clienteId,
+        usuarioId: usuario.id,
+        email: usuario.email
+      });
+      throw new BadRequestException(
+        `El ID del cliente no es válido (${usuario.clienteId}). Por favor, cierre sesión y vuelva a iniciar sesión.`
+      );
+    }
+
+    // Validar que proyectoId y tipoProyectoId sean válidos
+    if (!Types.ObjectId.isValid(createReclamoDto.proyectoId)) {
+      throw new BadRequestException('El ID del proyecto no es válido');
+    }
+    if (!Types.ObjectId.isValid(createReclamoDto.tipoProyectoId)) {
+      throw new BadRequestException('El ID del tipo de proyecto no es válido');
+    }
+
     // El cliente NO puede especificar estos campos, se asignan automáticamente
     return {
       // Campos proporcionados por el cliente
-      proyectoId: createReclamoDto.proyectoId,
-      tipoProyectoId: createReclamoDto.tipoProyectoId,
+      proyectoId: new Types.ObjectId(createReclamoDto.proyectoId),
+      tipoProyectoId: new Types.ObjectId(createReclamoDto.tipoProyectoId),
       tipo: createReclamoDto.tipo,
       descripcion: createReclamoDto.descripcion,
 
       // Campos asignados automáticamente
-      clienteId: usuario.clienteId, // Del usuario autenticado
+      clienteId: new Types.ObjectId(usuario.clienteId), // Del usuario autenticado, convertido a ObjectId
       prioridad: ReclamoPrioridad.MEDIA, // Por defecto
       criticidad: ReclamoCriticidad.MEDIA, // Por defecto
       estadoActual: ReclamoEstado.PENDIENTE, // Pendiente de asignación
       areaActual: undefined, // Sin área asignada (el coordinador lo asignará)
       responsableActualId: undefined, // Sin responsable (el coordinador lo asignará)
-      creadoPorUsuarioId: usuario.id,
+      creadoPorUsuarioId: new Types.ObjectId(usuario.id),
     };
   }
 
