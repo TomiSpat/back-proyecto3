@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { EstadoReclamoService } from './estado-reclamo.service';
-import { CambiarEstadoReclamoDto } from 'src/reclamo/dto/cambiar-estado-reclamo.dto';
+import { CambiarEstadoReclamoDto } from '../reclamo/dto/cambiar-estado-reclamo.dto';
 
 
 @ApiTags('Estados de Reclamo')

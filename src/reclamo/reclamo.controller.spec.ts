@@ -5,6 +5,8 @@ import { CreateReclamoDto } from './dto/create-reclamo.dto';
 import { UpdateReclamoDto } from './dto/update-reclamo.dto';
 import { AssignReclamoDto } from './dto/asignacion-area.dto';
 import { ReclamoEstado, ReclamoPrioridad, ReclamoCriticidad, ReclamoTipo, AreaGeneralReclamo } from './reclamo.enums';
+import { JwtUser } from '../auth/interfaces/jwt-user.interface';
+import { UsuarioRol } from '../usuario/usuario.enums';
 
 describe('ReclamoController', () => {
   let controller: ReclamoController;
@@ -25,6 +27,13 @@ describe('ReclamoController', () => {
   };
 
   const validObjectId = '507f1f77bcf86cd799439011';
+  const mockJwtUser: JwtUser = {
+    id: validObjectId,
+    email: 'test@test.com',
+    rol: UsuarioRol.ADMIN,
+    nombre: 'Test',
+    apellido: 'User',
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -64,9 +73,9 @@ describe('ReclamoController', () => {
       const expectedResult = { _id: validObjectId, ...createDto };
       mockReclamoService.create.mockResolvedValue(expectedResult);
 
-      const result = await controller.create(createDto);
+      const result = await controller.create(createDto, mockJwtUser);
 
-      expect(mockReclamoService.create).toHaveBeenCalledWith(createDto);
+      expect(mockReclamoService.create).toHaveBeenCalledWith(createDto, mockJwtUser);
       expect(result).toEqual(expectedResult);
     });
   });
@@ -190,7 +199,7 @@ describe('ReclamoController', () => {
 
   describe('asignarArea', () => {
     it('should assign area to a reclamo', async () => {
-      const assignDto: AssignReclamoDto = { area: AreaGeneralReclamo.VENTAS };
+      const assignDto: AssignReclamoDto = { area: AreaGeneralReclamo.VENTAS, responsableId: '507f1f77bcf86cd799439012' };
       const expectedResult = {
         _id: validObjectId,
         areaActual: AreaGeneralReclamo.VENTAS,
