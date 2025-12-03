@@ -5,6 +5,7 @@ import {
   ReclamoEstado,
   ReclamoPrioridad,
   ReclamoTipo,
+  ReclamoCriticidad,
 } from '../reclamo.enums';
 
 export type ReclamoDocument = HydratedDocument<Reclamo>;
@@ -14,11 +15,14 @@ export type ReclamoDocument = HydratedDocument<Reclamo>;
   timestamps: true, // createdAt / updatedAt
 })
 export class Reclamo {
-  @Prop({ type: Types.ObjectId, ref: 'Cliente', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'Cliente', required: true, index: true })
   clienteId: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Proyecto', required: true, index: true })
   proyectoId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'TipoProyecto', required: true, index: true })
+  tipoProyectoId: Types.ObjectId;
 
   @Prop({ type: String, unique: true, sparse: true })
   codigo?: string;
@@ -29,26 +33,35 @@ export class Reclamo {
   @Prop({ type: String, enum: ReclamoPrioridad, required: true })
   prioridad: ReclamoPrioridad;
 
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, enum: ReclamoCriticidad, required: true })
+  criticidad: ReclamoCriticidad;
+
+  @Prop({ type: String, required: true, minlength: 20, maxlength: 2000 })
   descripcion: string;
 
-  // Ãrea general visible para cliente
+  // Área general visible para cliente (puede ser null si el reclamo está pendiente de asignación)
   @Prop({
     type: String,
     enum: AreaGeneralReclamo,
-    required: true,
+    required: false,
     index: true,
   })
-  areaActual: AreaGeneralReclamo;
+  areaActual?: AreaGeneralReclamo;
 
   @Prop({
     type: String,
     enum: ReclamoEstado,
     required: true,
-    default: ReclamoEstado.CREADO,
+    default: ReclamoEstado.PENDIENTE,
     index: true,
   })
   estadoActual: ReclamoEstado;
+
+  @Prop({ type: Boolean, default: false })
+  puedeModificar: boolean;
+
+  @Prop({ type: Boolean, default: true })
+  puedeReasignar: boolean;
 
   // Usuario interno responsable actual
   @Prop({ type: Types.ObjectId, ref: 'Usuario', index: true })

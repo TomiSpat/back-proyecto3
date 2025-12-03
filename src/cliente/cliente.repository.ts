@@ -44,6 +44,22 @@ export class ClienteRepository implements IClienteRepository {
       .exec();
   }
 
+  async findByEmail(email: string): Promise<ClienteDocument | null> {
+    return await this.clienteModel
+      .findOne({ email, isDeleted: false })
+      .exec();
+  }
+
+  async updateUsuarioId(clienteId: string, usuarioId: string): Promise<ClienteDocument | null> {
+    return await this.clienteModel
+      .findOneAndUpdate(
+        { _id: clienteId, isDeleted: false },
+        { usuarioId },
+        { new: true }
+      )
+      .exec();
+  }
+
   async softDelete(id: string): Promise<void> {
     await this.clienteModel
       .findByIdAndUpdate(id, {

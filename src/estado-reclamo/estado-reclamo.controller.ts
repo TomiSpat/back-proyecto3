@@ -3,43 +3,88 @@ import {
   Get,
   Post,
   Body,
-  Patch,
   Param,
-  Delete,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { EstadoReclamoService } from './estado-reclamo.service';
-import { CreateEstadoReclamoDto } from './dto/create-estado-reclamo.dto';
-import { UpdateEstadoReclamoDto } from './dto/update-estado-reclamo.dto';
+import { CambiarEstadoReclamoDto } from '../reclamo/dto/cambiar-estado-reclamo.dto';
 
-@Controller('estado-reclamo')
+
+@ApiTags('Estados de Reclamo')
+@Controller('reclamo/:reclamoId/estado')
 export class EstadoReclamoController {
   constructor(private readonly estadoReclamoService: EstadoReclamoService) {}
 
-  @Post()
-  create(@Body() createEstadoReclamoDto: CreateEstadoReclamoDto) {
-    return this.estadoReclamoService.create(createEstadoReclamoDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.estadoReclamoService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.estadoReclamoService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateEstadoReclamoDto: UpdateEstadoReclamoDto,
+  @Post('cambiar')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ 
+    summary: 'Cambiar el estado de un reclamo',
+    description: 'Cambia el estado del reclamo validando las reglas de transición del patrón State. Registra el cambio en el historial con fecha, hora y área responsable.'
+  })
+  @ApiParam({ name: 'reclamoId', description: 'ID del reclamo' })
+  @ApiResponse({ status: 200, description: 'Estado cambiado exitosamente' })
+  @ApiResponse({ status: 400, description: 'Transición no permitida o datos inválidos' })
+  @ApiResponse({ status: 404, description: 'Reclamo no encontrado' })
+  cambiarEstado(
+    @Param('reclamoId') reclamoId: string,
+    @Body() cambioEstadoDto: CambiarEstadoReclamoDto,
   ) {
-    return this.estadoReclamoService.update(+id, updateEstadoReclamoDto);
+    return this.estadoReclamoService.cambiarEstado(reclamoId, cambioEstadoDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.estadoReclamoService.remove(+id);
+  @Get('historial')
+  @ApiOperation({ 
+    summary: 'Obtener historial de cambios de estado',
+    description: 'Retorna el historial completo de cambios de estado del reclamo, incluyendo fechas, horas, áreas responsables y usuarios que realizaron los cambios.'
+  })
+  @ApiParam({ name: 'reclamoId', description: 'ID del reclamo' })
+  @ApiResponse({ status: 200, description: 'Historial obtenido exitosamente' })
+  @ApiResponse({ status: 400, description: 'ID inválido' })
+  obtenerHistorial(@Param('reclamoId') reclamoId: string) {
+    return this.estadoReclamoService.obtenerHistorial(reclamoId);
+  }
+
+  @Get('puede-modificar')
+  @ApiOperation({ 
+    summary: 'Verificar si el reclamo puede ser modificado',
+    description: 'Verifica si el reclamo puede ser modificado en su estado actual según las reglas del patrón State.'
+  })
+  @ApiParam({ name: 'reclamoId', description: 'ID del reclamo' })
+  @ApiResponse({ status: 200, description: 'Retorna true o false' })
+  @ApiResponse({ status: 400, description: 'ID inválido' })
+  @ApiResponse({ status: 404, description: 'Reclamo no encontrado' })
+  puedeModificar(@Param('reclamoId') reclamoId: string) {
+    return this.estadoReclamoService.puedeModificarReclamo(reclamoId);
+  }
+
+  @Get('puede-reasignar')
+  @ApiOperation({ 
+    summary: 'Verificar si el reclamo puede ser reasignado',
+    description: 'Verifica si el reclamo puede ser reasignado a otra área o responsable en su estado actual.'
+  })
+  @ApiParam({ name: 'reclamoId', description: 'ID del reclamo' })
+  @ApiResponse({ status: 200, description: 'Retorna true o false' })
+  @ApiResponse({ status: 400, description: 'ID inválido' })
+  @ApiResponse({ status: 404, description: 'Reclamo no encontrado' })
+  puedeReasignar(@Param('reclamoId') reclamoId: string) {
+    return this.estadoReclamoService.puedeReasignarReclamo(reclamoId);
+  }
+}
+
+@ApiTags('Estados de Reclamo')
+@Controller('reclamo/estados')
+export class InfoEstadosController {
+  constructor(private readonly estadoReclamoService: EstadoReclamoService) {}
+
+  @Get('info')
+  @ApiOperation({ 
+    summary: 'Obtener información de todos los estados',
+    description: 'Retorna información detallada de todos los estados disponibles, sus transiciones permitidas y permisos.'
+  })
+  @ApiResponse({ status: 200, description: 'Información de estados obtenida' })
+  obtenerInformacionEstados() {
+    return this.estadoReclamoService.obtenerInformacionEstados();
   }
 }

@@ -26,7 +26,7 @@ export class ClienteController {
 
   @Get()
   findAll(@Query() filter?: any) {
-    return this.clienteService.findAll(filter);
+    return this.clienteService.findAllSimplified(filter);
   }
 
   @Get('search')

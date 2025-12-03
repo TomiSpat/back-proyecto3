@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 
 export type ClienteDocument = HydratedDocument<Cliente>;
 
@@ -8,10 +8,10 @@ export type ClienteDocument = HydratedDocument<Cliente>;
   timestamps: true, // createdAt / updatedAt
 })
 export class Cliente {
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: true, minlength: 2, maxlength: 15 })
   nombre: string;
 
-  @Prop({ type: String, required: true })
+  @Prop({ type: String, required: true, minlength: 2, maxlength: 40  })
   apellido: string;
 
   @Prop({ type: String, required: true, unique: true })
@@ -25,6 +25,9 @@ export class Cliente {
 
   @Prop({ type: String, required: true, unique: true })
   email: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'Usuario', default: null })
+  usuarioId?: Types.ObjectId;
 
   @Prop({ type: Boolean, default: false })
   isDeleted: boolean;
