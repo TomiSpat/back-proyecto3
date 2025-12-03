@@ -29,6 +29,10 @@ export class ProyectoRepository implements IProyectoRepository {
       .exec();
   }
 
+  async findAllWithRelations(filter: any = {}): Promise<ProyectoDocument[]> {
+    return await this.findAll(filter);
+  }
+
   async findOne(id: string): Promise<ProyectoDocument | null> {
     return await this.proyectoModel
       .findOne({ _id: id, isDeleted: false })

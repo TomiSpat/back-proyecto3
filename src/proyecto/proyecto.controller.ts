@@ -26,7 +26,7 @@ export class ProyectoController {
 
   @Get()
   findAll(@Query() filter?: any) {
-    return this.proyectoService.findAll(filter);
+    return this.proyectoService.findAllSimplified(filter);
   }
 
   @Get('search')

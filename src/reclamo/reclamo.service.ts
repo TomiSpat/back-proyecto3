@@ -11,6 +11,8 @@ import { UsuarioRol } from '../usuario/usuario.enums';
 import { ReclamoPrioridad, ReclamoCriticidad, ReclamoEstado, AreaGeneralReclamo } from './reclamo.enums';
 import { EstadoReclamoService } from '../estado-reclamo/estado-reclamo.service';
 import { UsuarioService } from '../usuario/usuario.service';
+import { PaginatedResponse } from '../common/interfaces/paginated-response.interface';
+import { ReclamoMapper, ReclamoListDto } from './interface/reclamo.mapper';
 
 @Injectable()
 export class ReclamoService {
@@ -139,6 +141,19 @@ export class ReclamoService {
     return await this.reclamoRepository.findAll(filter);
   }
 
+  async findAllSimplified(filter?: any): Promise<ReclamoListDto[]> {
+    const reclamos = await this.reclamoRepository.findAllWithRelations(filter);
+    return ReclamoMapper.toListDtoArray(reclamos);
+  }
+
+  async findAllPaginated(
+    page: number = 1,
+    limit: number = 10,
+    filter: any = {},
+  ): Promise<PaginatedResponse<ReclamoDocument>> {
+    return await this.reclamoRepository.findAllPaginated(filter, page, limit);
+  }
+
   async findOne(id: string): Promise<ReclamoDocument> {
     if (!id.match(/^[0-9a-fA-F]{24}$/)) {
       throw new BadRequestException(`El ID "${id}" no es un ObjectId válido de MongoDB`);
@@ -160,6 +175,17 @@ export class ReclamoService {
       throw new BadRequestException(`El ID del cliente "${clienteId}" no es un ObjectId válido de MongoDB`);
     }
     return await this.reclamoRepository.findByCliente(clienteId);
+  }
+
+  async findByClientePaginated(
+    clienteId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<PaginatedResponse<ReclamoDocument>> {
+    if (!clienteId.match(/^[0-9a-fA-F]{24}$/)) {
+      throw new BadRequestException(`El ID del cliente "${clienteId}" no es un ObjectId válido de MongoDB`);
+    }
+    return await this.reclamoRepository.findByClientePaginated(clienteId, page, limit);
   }
 
   async findByProyecto(proyectoId: string): Promise<ReclamoDocument[]> {
@@ -446,5 +472,146 @@ export class ReclamoService {
       throw new NotFoundException(`No se encontró el reclamo con ID "${id}". No se pudo cancelar.`);
     }
     await this.reclamoRepository.softDelete(id);
+  }
+
+  /**
+   * Obtener carga de trabajo por área
+   */
+  async obtenerCargaTrabajo(fechaInicio?: string, fechaFin?: string, area?: string): Promise<{
+    porArea: Array<{ area: string; cantidad: number; porcentaje: number }>;
+  }> {
+    // Construir filtro
+    const filtro: any = {};
+    
+    if (fechaInicio || fechaFin) {
+      filtro.createdAt = {};
+      if (fechaInicio) {
+        filtro.createdAt.$gte = new Date(fechaInicio);
+      }
+      if (fechaFin) {
+        const fechaFinDate = new Date(fechaFin);
+        fechaFinDate.setHours(23, 59, 59, 999);
+        filtro.createdAt.$lte = fechaFinDate;
+      }
+    }
+
+    if (area) {
+      filtro.areaActual = area;
+    }
+
+    // Obtener reclamos
+    const reclamos = await this.reclamoRepository.findAll(filtro);
+    const total = reclamos.length;
+
+    // Agrupar por área
+    const porAreaMap = new Map<string, number>();
+    reclamos.forEach(r => {
+      if (r.areaActual) {
+        porAreaMap.set(r.areaActual, (porAreaMap.get(r.areaActual) || 0) + 1);
+      }
+    });
+
+    const porArea = Array.from(porAreaMap.entries()).map(([area, cantidad]) => ({
+      area,
+      cantidad,
+      porcentaje: total > 0 ? Math.round((cantidad / total) * 100) : 0,
+    }));
+
+    return { porArea };
+  }
+
+  /**
+   * Obtener tiempo promedio de resolución por tipo de reclamo
+   */
+  async obtenerTiempoResolucionPorTipo(): Promise<Array<{
+    tipo: string;
+    tiempoPromedioDias: number;
+    cantidadResueltos: number;
+  }>> {
+    // Obtener solo reclamos resueltos
+    const reclamosResueltos = await this.reclamoRepository.findAll({
+      estadoActual: ReclamoEstado.RESUELTO,
+    });
+
+    // Agrupar por tipo
+    const porTipoMap = new Map<string, { totalDias: number; cantidad: number }>();
+
+    reclamosResueltos.forEach(r => {
+      const reclamoDoc = r as any; // Cast para acceder a createdAt de timestamps
+      if (r.fechaResolucion && reclamoDoc.createdAt) {
+        const tiempoDias = Math.ceil(
+          (new Date(r.fechaResolucion).getTime() - new Date(reclamoDoc.createdAt).getTime()) / 
+          (1000 * 60 * 60 * 24)
+        );
+
+        const existing = porTipoMap.get(r.tipo);
+        if (existing) {
+          existing.totalDias += tiempoDias;
+          existing.cantidad++;
+        } else {
+          porTipoMap.set(r.tipo, { totalDias: tiempoDias, cantidad: 1 });
+        }
+      }
+    });
+
+    // Calcular promedios
+    return Array.from(porTipoMap.entries()).map(([tipo, data]) => ({
+      tipo,
+      tiempoPromedioDias: Math.round(data.totalDias / data.cantidad),
+      cantidadResueltos: data.cantidad,
+    }));
+  }
+
+  /**
+   * Obtener estadísticas de reclamos con filtro de fecha
+   */
+  async obtenerEstadisticas(fechaInicio?: string, fechaFin?: string): Promise<{
+    totalReclamos: number;
+    tasaResolucion: number;
+    tasaCancelacion: number;
+  }> {
+    // Construir filtro de fecha
+    const filtroFecha: any = {};
+    if (fechaInicio || fechaFin) {
+      filtroFecha.createdAt = {};
+      if (fechaInicio) {
+        filtroFecha.createdAt.$gte = new Date(fechaInicio);
+      }
+      if (fechaFin) {
+        // Agregar 23:59:59 al final del día
+        const fechaFinDate = new Date(fechaFin);
+        fechaFinDate.setHours(23, 59, 59, 999);
+        filtroFecha.createdAt.$lte = fechaFinDate;
+      }
+    }
+
+    // Obtener todos los reclamos en el rango de fecha
+    const reclamos = await this.reclamoRepository.findAll(filtroFecha);
+    const totalReclamos = reclamos.length;
+
+    // Calcular reclamos resueltos (estado RESUELTO)
+    const reclamosResueltos = reclamos.filter(
+      (r) => r.estadoActual === ReclamoEstado.RESUELTO
+    ).length;
+
+    // Calcular reclamos cancelados (estado CANCELADO)
+    const reclamosCancelados = reclamos.filter(
+      (r) => r.estadoActual === ReclamoEstado.CANCELADO
+    ).length;
+
+    // Calcular tasas (porcentaje)
+    const tasaResolucion = totalReclamos > 0 
+      ? Math.round((reclamosResueltos / totalReclamos) * 100) 
+      : 0;
+
+    const tasaCancelacion = totalReclamos > 0 
+      ? Math.round((reclamosCancelados / totalReclamos) * 100) 
+      : 0;
+
+    return {
+      totalReclamos,
+      tasaResolucion,
+      tasaCancelacion,
+    };
   }
 }
