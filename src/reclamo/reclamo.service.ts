@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, forwardRef, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, forwardRef, Inject, HttpException } from '@nestjs/common';
 import { CreateReclamoDto } from './dto/create-reclamo.dto';
 import { UpdateReclamoDto } from './dto/update-reclamo.dto';
 import { ReclamoRepository } from './reclamo.repository';
@@ -48,6 +48,9 @@ export class ReclamoService {
 
       return await this.reclamoRepository.create(reclamoData);
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       if (error.code === 11000) {
         throw new BadRequestException('Ya existe un reclamo con ese código');
       }
