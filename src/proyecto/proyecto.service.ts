@@ -3,6 +3,7 @@ import { CreateProyectoDto } from './dto/create-proyecto.dto';
 import { UpdateProyectoDto } from './dto/update-proyecto.dto';
 import { ProyectoRepository } from './proyecto.repository';
 import { ProyectoDocument } from './entities/proyecto.entity';
+import { ProyectoMapper, ProyectoListDto } from './interface/proyecto.mapper';
 
 @Injectable()
 export class ProyectoService {
@@ -14,6 +15,11 @@ export class ProyectoService {
 
   async findAll(filter?: any): Promise<ProyectoDocument[]> {
     return await this.proyectoRepository.findAll(filter);
+  }
+
+  async findAllSimplified(filter?: any): Promise<ProyectoListDto[]> {
+    const proyectos = await this.proyectoRepository.findAllWithRelations(filter);
+    return ProyectoMapper.toListDtoArray(proyectos);
   }
 
   async findOne(id: string): Promise<ProyectoDocument> {

@@ -3,6 +3,7 @@ import { CreateClienteDto } from './dto/create-cliente.dto';
 import { UpdateClienteDto } from './dto/update-cliente.dto';
 import { ClienteRepository } from './cliente.repository';
 import { ClienteDocument } from './entities/cliente.entity';
+import { ClienteMapper, ClienteListDto } from './interface/cliente.mapper';
 
 @Injectable()
 export class ClienteService {
@@ -14,6 +15,11 @@ export class ClienteService {
 
   async findAll(filter?: any): Promise<ClienteDocument[]> {
     return await this.clienteRepository.findAll(filter);
+  }
+
+  async findAllSimplified(filter?: any): Promise<ClienteListDto[]> {
+    const clientes = await this.clienteRepository.findAll(filter);
+    return ClienteMapper.toListDtoArray(clientes);
   }
 
   async findOne(id: string): Promise<ClienteDocument> {

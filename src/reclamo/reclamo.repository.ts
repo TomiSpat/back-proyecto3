@@ -5,6 +5,7 @@ import { Reclamo, ReclamoDocument } from './entities/reclamo.entity';
 import { CreateReclamoDto } from './dto/create-reclamo.dto';
 import { UpdateReclamoDto } from './dto/update-reclamo.dto';
 import { IReclamoRepository } from './interface/IReclamoRepository';
+import { PaginatedResponse } from '../common/interfaces/paginated-response.interface';
 
 @Injectable()
 export class ReclamoRepository implements IReclamoRepository {
@@ -42,6 +43,47 @@ export class ReclamoRepository implements IReclamoRepository {
       .exec();
   }
 
+  async findAllWithRelations(filter: any = {}): Promise<ReclamoDocument[]> {
+    return await this.findAll(filter);
+  }
+
+  async findAllPaginated(
+    filter: any = {},
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<PaginatedResponse<ReclamoDocument>> {
+    const skip = (page - 1) * limit;
+
+    const [data, total] = await Promise.all([
+      this.reclamoModel
+        .find(filter)
+        .populate('clienteId')
+        .populate('proyectoId')
+        .populate('tipoProyectoId')
+        .populate('responsableActualId')
+        .populate('creadoPorUsuarioId')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.reclamoModel.countDocuments(filter).exec(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+    };
+  }
+
   async findOne(id: string): Promise<ReclamoDocument | null> {
     return await this.reclamoModel
       .findById(id)
@@ -75,6 +117,15 @@ export class ReclamoRepository implements IReclamoRepository {
       .populate('creadoPorUsuarioId')
       .sort({ createdAt: -1 })
       .exec();
+  }
+
+  async findByClientePaginated(
+    clienteId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<PaginatedResponse<ReclamoDocument>> {
+    const filter = { clienteId: new Types.ObjectId(clienteId) };
+    return this.findAllPaginated(filter, page, limit);
   }
 
   async findByProyecto(proyectoId: string): Promise<ReclamoDocument[]> {

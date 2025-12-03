@@ -17,6 +17,7 @@ import { UpdateReclamoDto } from './dto/update-reclamo.dto';
 import { AssignReclamoDto } from './dto/asignacion-area.dto';
 import { AsignarReclamoPendienteDto } from './dto/asignar-reclamo-pendiente.dto';
 import { AsignarResponsableDto } from './dto/asignar-responsable.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -57,10 +58,13 @@ export class ReclamoController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Obtener todos los reclamos' })
-  @ApiResponse({ status: 200, description: 'Lista de reclamos obtenida exitosamente' })
+  @ApiOperation({ 
+    summary: 'Obtener todos los reclamos (vista simplificada)',
+    description: 'Retorna una lista simplificada de reclamos con solo los campos esenciales.'
+  })
+  @ApiResponse({ status: 200, description: 'Lista simplificada de reclamos obtenida exitosamente' })
   findAll(@Query() filter?: any) {
-    return this.reclamoService.findAll(filter);
+    return this.reclamoService.findAllSimplified(filter);
   }
 
   @Get('search')
@@ -71,12 +75,21 @@ export class ReclamoController {
   }
 
   @Get('cliente/:clienteId')
-  @ApiOperation({ summary: 'Obtener reclamos de un cliente específico' })
+  @ApiOperation({ 
+    summary: 'Obtener reclamos de un cliente específico con paginación',
+    description: 'Retorna una lista paginada de reclamos de un cliente. Por defecto: página 1, 10 elementos por página.'
+  })
   @ApiParam({ name: 'clienteId', description: 'ID del cliente' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Número de página (default: 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Elementos por página (default: 10, max: 100)' })
   @ApiResponse({ status: 200, description: 'Reclamos del cliente obtenidos' })
   @ApiResponse({ status: 400, description: 'ID de cliente inválido' })
-  findByCliente(@Param('clienteId') clienteId: string) {
-    return this.reclamoService.findByCliente(clienteId);
+  findByCliente(
+    @Param('clienteId') clienteId: string,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    const { page = 1, limit = 10 } = paginationDto;
+    return this.reclamoService.findByClientePaginated(clienteId, page, limit);
   }
 
   @Get('proyecto/:proyectoId')
