@@ -10,6 +10,7 @@ import { JwtUser } from '../auth/interfaces/jwt-user.interface';
 import { UsuarioRol } from '../usuario/usuario.enums';
 import { ReclamoPrioridad, ReclamoCriticidad, ReclamoEstado, AreaGeneralReclamo } from './reclamo.enums';
 import { EstadoReclamoService } from '../estado-reclamo/estado-reclamo.service';
+import { UsuarioService } from '../usuario/usuario.service';
 
 @Injectable()
 export class ReclamoService {
@@ -17,6 +18,8 @@ export class ReclamoService {
     private readonly reclamoRepository: ReclamoRepository,
     @Inject(forwardRef(() => EstadoReclamoService))
     private readonly estadoReclamoService: EstadoReclamoService,
+    @Inject(forwardRef(() => UsuarioService))
+    private readonly usuarioService: UsuarioService,
   ) {}
 
   /**
@@ -231,43 +234,62 @@ export class ReclamoService {
       );
     }
 
+    // Validar que el responsable sea un agente activo del área nueva
+    const esAgenteDelArea = await this.usuarioService.validarAgenteDelArea(
+      assignDto.responsableId,
+      assignDto.area
+    );
+
+    if (!esAgenteDelArea) {
+      // Obtener agentes disponibles para mostrar en el mensaje de error
+      const agentesDisponibles = await this.usuarioService.findAgentesActivosByArea(assignDto.area);
+      const nombresAgentes = agentesDisponibles.map(a => `${a.nombre} ${a.apellido} (${a._id})`).join(', ');
+      
+      throw new BadRequestException(
+        `El responsable seleccionado no es un agente activo del área "${assignDto.area}". ` +
+        `Solo puede asignar agentes activos que pertenezcan a esta área. ` +
+        `Agentes disponibles: ${nombresAgentes || 'No hay agentes activos en esta área'}`
+      );
+    }
+
     const areaAnterior = reclamoActual.areaActual;
-    const reclamo = await this.reclamoRepository.asignarArea(id, assignDto.area);
-    if (!reclamo) {
+    const responsableAnteriorId = reclamoActual.responsableActualId?.toString();
+
+    // Actualizar área y responsable juntos
+    const actualizado = await this.reclamoRepository.update(id, { 
+      areaActual: assignDto.area,
+      responsableActualId: assignDto.responsableId 
+    } as UpdateReclamoDto);
+    
+    if (!actualizado) {
       throw new NotFoundException(`No se encontró el reclamo con ID "${id}". No se pudo asignar el área.`);
     }
 
-    // Registrar cambio de área en el historial
+    // Registrar cambio de área en el historial (incluye el responsable nuevo)
     await this.estadoReclamoService.registrarCambioArea(
       id,
       areaAnterior,
       assignDto.area as AreaGeneralReclamo,
       undefined,
-      `Área reasignada de ${areaAnterior || 'sin asignar'} a ${assignDto.area}`
+      `Área reasignada de ${areaAnterior || 'sin asignar'} a ${assignDto.area}`,
+      undefined, // fechaBase
+      assignDto.responsableId // responsable nuevo asignado junto con el área
     );
 
-    // Si se proporciona un responsable, actualizarlo también
-    if (assignDto.responsableId) {
-      const responsableAnteriorId = reclamoActual.responsableActualId?.toString();
-      const actualizado = await this.reclamoRepository.update(id, { responsableActualId: assignDto.responsableId });
-      if (!actualizado) {
-        throw new NotFoundException(`No se encontró el reclamo con ID "${id}". No se pudo asignar el responsable.`);
-      }
+    // Registrar cambio de responsable en el historial (incluye el área nueva)
+    await this.estadoReclamoService.registrarCambioResponsable(
+      id,
+      responsableAnteriorId,
+      assignDto.responsableId,
+      assignDto.area as AreaGeneralReclamo,
+      undefined,
+      'Responsable asignado junto con cambio de área',
+      undefined, // fechaBase
+      assignDto.area as AreaGeneralReclamo, // área nueva
+      areaAnterior // área anterior
+    );
 
-      // Registrar cambio de responsable en el historial
-      await this.estadoReclamoService.registrarCambioResponsable(
-        id,
-        responsableAnteriorId,
-        assignDto.responsableId,
-        assignDto.area as AreaGeneralReclamo,
-        undefined,
-        'Responsable reasignado junto con área'
-      );
-
-      return actualizado;
-    }
-
-    return reclamo;
+    return actualizado;
   }
 
   /**

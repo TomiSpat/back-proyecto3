@@ -52,6 +52,22 @@ export class UsuarioController {
     return this.usuarioService.findByArea(area);
   }
 
+  @Get('agentes/area/:area')
+  @ApiOperation({ 
+    summary: 'Listar agentes activos por área',
+    description: 'Obtiene solo los agentes activos de un área específica. Útil para asignar responsables a reclamos.'
+  })
+  @ApiParam({ 
+    name: 'area', 
+    description: 'Área del agente', 
+    example: 'SOPORTE_TECNICO',
+    enum: ['VENTAS', 'SOPORTE_TECNICO', 'FACTURACION']
+  })
+  @ApiResponse({ status: 200, description: 'Lista de agentes activos del área obtenida exitosamente' })
+  findAgentesActivosByArea(@Param('area') area: string) {
+    return this.usuarioService.findAgentesActivosByArea(area);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obtener un usuario por ID' })
   @ApiParam({ name: 'id', description: 'ID del usuario', example: '507f1f77bcf86cd799439011' })

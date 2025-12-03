@@ -67,6 +67,22 @@ export class UsuarioRepository implements IUsuarioRepository {
       .exec();
   }
 
+  /**
+   * Obtiene solo los agentes activos de un área específica
+   */
+  async findAgentesActivosByArea(area: string): Promise<UsuarioDocument[]> {
+    return await this.usuarioModel
+      .find({ 
+        areaAsignada: area, 
+        rol: 'agente',
+        estado: 'activo',
+        isDeleted: false 
+      })
+      .select('-password')
+      .sort({ nombre: 1 })
+      .exec();
+  }
+
   async update(id: string, updateUsuarioDto: UpdateUsuarioDto): Promise<UsuarioDocument | null> {
     const updateData: any = { ...updateUsuarioDto };
 
