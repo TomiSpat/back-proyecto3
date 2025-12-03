@@ -1,13 +1,15 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ReclamoService } from './reclamo.service';
 import { ReclamoController } from './reclamo.controller';
 import { ReclamoRepository } from './reclamo.repository';
 import { Reclamo, ReclamoSchema } from './entities/reclamo.entity';
 import { HistorialEstadoReclamo, HistorialEstadoReclamoSchema } from './entities/historial-estado-reclamo.entity';
-import { EstadoReclamoService } from './services/estado-reclamo.service';
-import { EstadoReclamoController, InfoEstadosController } from './controllers/estado-reclamo.controller';
 import { ReclamoStateFactory } from './state/reclamo-state.factory';
+import { EstadoReclamoController, InfoEstadosController } from 'src/estado-reclamo/estado-reclamo.controller';
+import { EstadoReclamoService } from 'src/estado-reclamo/estado-reclamo.service';
+import { AuthModule } from '../auth/auth.module';
+import { UsuarioModule } from '../usuario/usuario.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { ReclamoStateFactory } from './state/reclamo-state.factory';
       { name: Reclamo.name, schema: ReclamoSchema },
       { name: HistorialEstadoReclamo.name, schema: HistorialEstadoReclamoSchema },
     ]),
+    AuthModule, // Para usar los guards de autenticación
+    forwardRef(() => UsuarioModule), // Para validar agentes al asignar área
   ],
   controllers: [ReclamoController, EstadoReclamoController, InfoEstadosController],
   providers: [

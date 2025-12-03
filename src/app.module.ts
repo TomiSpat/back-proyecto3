@@ -7,7 +7,7 @@ import { ClienteModule } from './cliente/cliente.module';
 import { ProyectoModule } from './proyecto/proyecto.module';
 import { ReclamoModule } from './reclamo/reclamo.module';
 import { UsuarioModule } from './usuario/usuario.module';
-import { EstadoReclamoModule } from './estado-reclamo/estado-reclamo.module';
+import { AuthModule } from './auth/auth.module';
 import { EventoReclamoModule } from './evento-reclamo/evento-reclamo.module';
 import { ReporteModule } from './reporte/reporte.module';
 import { TipoProyectoModule } from './tipo-proyecto/tipo-proyecto.module';
@@ -25,7 +25,16 @@ import { TipoProyectoModule } from './tipo-proyecto/tipo-proyecto.module';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         uri: configService.get<string>('MONGODB_URI'),
-        dbName: 'proyecto3_db', // Nombre de la base de datos
+        dbName: 'proyecto3_db',
+        // Opciones para MongoDB Atlas - mejora estabilidad de conexión
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+        maxPoolSize: 10,
+        minPoolSize: 2,
+        maxIdleTimeMS: 30000,
+        retryWrites: true,
+        retryReads: true,
+        heartbeatFrequencyMS: 10000,
       }),
       inject: [ConfigService],
     }),
@@ -34,10 +43,9 @@ import { TipoProyectoModule } from './tipo-proyecto/tipo-proyecto.module';
     ProyectoModule,
     ReclamoModule,
     UsuarioModule,
-    EstadoReclamoModule,
+    AuthModule,
     EventoReclamoModule,
     ReporteModule,
-    // AuthModule,
     TipoProyectoModule,
   ],
   controllers: [AppController],

@@ -9,12 +9,21 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { ReclamoService } from './reclamo.service';
 import { CreateReclamoDto } from './dto/create-reclamo.dto';
 import { UpdateReclamoDto } from './dto/update-reclamo.dto';
 import { AssignReclamoDto } from './dto/asignacion-area.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { AsignarReclamoPendienteDto } from './dto/asignar-reclamo-pendiente.dto';
+import { AsignarResponsableDto } from './dto/asignar-responsable.dto';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtUser } from '../auth/interfaces/jwt-user.interface';
+import { UsuarioRol } from '../usuario/usuario.enums';
 
 @ApiTags('Reclamos')
 @Controller('reclamo')
@@ -22,12 +31,29 @@ export class ReclamoController {
   constructor(private readonly reclamoService: ReclamoService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UsuarioRol.CLIENTE, UsuarioRol.ADMIN, UsuarioRol.COORDINADOR, UsuarioRol.AGENTE)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Crear un nuevo reclamo' })
+  @ApiOperation({ 
+    summary: 'Crear un nuevo reclamo',
+    description: `
+      CLIENTE: Crea un reclamo básico. Solo debe proporcionar: proyectoId, tipoProyectoId, tipo, descripcion.
+      El clienteId se detecta automáticamente. Prioridad y criticidad se asignan como MEDIA.
+      
+      ADMIN/COORDINADOR/AGENTE: Crea un reclamo completo. Debe proporcionar: clienteId, proyectoId, 
+      tipoProyectoId, tipo, prioridad, criticidad, descripcion. Opcionalmente puede asignar área y responsable.
+    `
+  })
   @ApiResponse({ status: 201, description: 'Reclamo creado exitosamente' })
   @ApiResponse({ status: 400, description: 'Datos inválidos o error en la creación' })
-  create(@Body() createReclamoDto: CreateReclamoDto) {
-    return this.reclamoService.create(createReclamoDto);
+  @ApiResponse({ status: 401, description: 'No autenticado' })
+  @ApiResponse({ status: 403, description: 'No autorizado (rol insuficiente)' })
+  create(
+    @Body() createReclamoDto: CreateReclamoDto,
+    @CurrentUser() usuario: JwtUser
+  ) {
+    return this.reclamoService.create(createReclamoDto, usuario);
   }
 
   @Get()
@@ -100,13 +126,61 @@ export class ReclamoController {
   }
 
   @Patch(':id/asignar-area')
-  @ApiOperation({ summary: 'Asignar un reclamo a un área específica' })
+  @ApiOperation({ 
+    summary: 'Asignar o cambiar el área de un reclamo',
+    description: `
+      Permite cambiar el área de un reclamo. 
+      IMPORTANTE: Al cambiar de área, es OBLIGATORIO asignar un agente de esa área.
+      El responsable debe ser un agente activo que pertenezca al área seleccionada.
+      
+      Para obtener los agentes disponibles de un área, use: GET /usuario/agentes/area/{area}
+    `
+  })
   @ApiParam({ name: 'id', description: 'ID del reclamo' })
-  @ApiResponse({ status: 200, description: 'Área asignada exitosamente' })
-  @ApiResponse({ status: 400, description: 'Datos inválidos o ID inválido' })
+  @ApiResponse({ status: 200, description: 'Área y responsable asignados exitosamente' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos, ID inválido, o responsable no pertenece al área' })
   @ApiResponse({ status: 404, description: 'Reclamo no encontrado' })
   asignarArea(@Param('id') id: string, @Body() assignDto: AssignReclamoDto) {
     return this.reclamoService.asignarArea(id, assignDto);
+  }
+
+  @Patch(':id/asignar-responsable')
+  @ApiOperation({ 
+    summary: 'Asignar o cambiar el responsable de un reclamo',
+    description: 'Permite cambiar el responsable de un reclamo sin modificar su estado ni área.'
+  })
+  @ApiParam({ name: 'id', description: 'ID del reclamo' })
+  @ApiResponse({ status: 200, description: 'Responsable asignado exitosamente' })
+  @ApiResponse({ status: 400, description: 'Datos inválidos, ID inválido o responsable ya asignado' })
+  @ApiResponse({ status: 404, description: 'Reclamo no encontrado' })
+  asignarResponsable(@Param('id') id: string, @Body() asignarDto: AsignarResponsableDto) {
+    return this.reclamoService.asignarResponsable(id, asignarDto);
+  }
+
+  @Patch(':id/asignar-pendiente')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UsuarioRol.COORDINADOR, UsuarioRol.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({ 
+    summary: 'Asignar un reclamo PENDIENTE (Coordinador)',
+    description: `
+      Este endpoint es usado por coordinadores para asignar reclamos creados por clientes.
+      El reclamo debe estar en estado PENDIENTE y sin área asignada.
+      Al asignar, el estado cambia a EN_PROCESO.
+    `
+  })
+  @ApiParam({ name: 'id', description: 'ID del reclamo pendiente' })
+  @ApiResponse({ status: 200, description: 'Reclamo asignado exitosamente' })
+  @ApiResponse({ status: 400, description: 'El reclamo no está pendiente o ya fue asignado' })
+  @ApiResponse({ status: 401, description: 'No autenticado' })
+  @ApiResponse({ status: 403, description: 'No autorizado (solo Coordinador y Admin)' })
+  @ApiResponse({ status: 404, description: 'Reclamo no encontrado' })
+  asignarReclamoPendiente(
+    @Param('id') id: string, 
+    @Body() asignarDto: AsignarReclamoPendienteDto,
+    @CurrentUser() usuario: JwtUser
+  ) {
+    return this.reclamoService.asignarReclamoPendiente(id, asignarDto, usuario);
   }
 
   @Delete(':id')

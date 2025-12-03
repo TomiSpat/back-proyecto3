@@ -1,7 +1,7 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateReclamoDto } from './create-reclamo.dto';
 import { IsMongoId, IsOptional, IsEnum, IsString, IsDateString } from 'class-validator';
-import { ReclamoEstado } from '../reclamo.enums';
+import { ReclamoEstado, AreaGeneralReclamo } from '../reclamo.enums';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateReclamoDto extends PartialType(CreateReclamoDto) {
@@ -9,6 +9,11 @@ export class UpdateReclamoDto extends PartialType(CreateReclamoDto) {
   @IsMongoId({ message: 'El ID del responsable debe ser un ObjectId válido de MongoDB' })
   @IsOptional()
   responsableActualId?: string;
+
+  @ApiProperty({ enum: AreaGeneralReclamo, description: 'Área actual del reclamo', required: false })
+  @IsEnum(AreaGeneralReclamo, { message: 'El área debe ser: VENTAS, SOPORTE_TECNICO o FACTURACION' })
+  @IsOptional()
+  areaActual?: AreaGeneralReclamo;
 
   @ApiProperty({ enum: ReclamoEstado, description: 'Estado actual del reclamo', required: false })
   @IsEnum(ReclamoEstado, { message: 'El estado debe ser: CREADO, PENDIENTE, ASIGNADO, EN_PROCESO, RESUELTO, CERRADO o CANCELADO' })
